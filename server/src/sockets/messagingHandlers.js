@@ -23,8 +23,13 @@ async function handleDirectMessageSend({ io, socket, service }, payload, ack) {
       idempotencyKey,
     });
     const dto = toMessageDto(message);
-    // A retried send is acked again but not delivered twice.
-    if (!duplicate) io.to(userRoom(toUserId)).to(userRoom(socket.user.id)).emit('message:new', dto);
+    // A retried send is acked again but not delivered twice. `kind` and
+    // `senderUsername` let the client list a DM from someone new without a lookup.
+    if (!duplicate) {
+      io.to(userRoom(toUserId))
+        .to(userRoom(socket.user.id))
+        .emit('message:new', { ...dto, kind: 'direct', senderUsername: socket.user.username });
+    }
     socket.emit('message:status', { messageId: dto.id, idempotencyKey: dto.idempotencyKey, status: dto.status });
     if (typeof ack === 'function') ack({ ok: true, message: dto });
   } catch (err) {

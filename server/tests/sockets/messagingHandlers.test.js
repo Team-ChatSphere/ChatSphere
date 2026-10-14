@@ -46,7 +46,7 @@ describe('message:send for DMs (FR-007, FR-008)', () => {
     expect(to).toHaveBeenCalledWith(`user:${ALICE}`);
     expect(emit).toHaveBeenCalledWith(
       'message:new',
-      expect.objectContaining({ id: MESSAGE_ID, senderId: ALICE, content: 'hi' })
+      expect.objectContaining({ id: MESSAGE_ID, senderId: ALICE, content: 'hi', kind: 'direct', senderUsername: 'alice' })
     );
     expect(socket.emit).toHaveBeenCalledWith('message:status', {
       messageId: MESSAGE_ID,
