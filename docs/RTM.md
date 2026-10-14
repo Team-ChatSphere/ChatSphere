@@ -4,7 +4,7 @@ Extends SRS Appendix C / Test Plan Appendix B. Updated as code and tests land; "
 
 Status: ⬜ not started · 🟨 in progress · ✅ done
 
-Last updated: 14 Oct 2026 (after PRs #15–#20, #58, #59, #61, #62).
+Last updated: 14 Oct 2026 (after PRs #15–#20, #58, #59, #61–#66; #67 pending review).
 
 | Req ID | Requirement | Backlog | Sprint | Test case(s) | Code | Tests | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -19,12 +19,12 @@ Last updated: 14 Oct 2026 (after PRs #15–#20, #58, #59, #61, #62).
 | FR-009 | Queue & deliver to offline recipient | CS-29 | 2 | TC-06 | | | ⬜ |
 | FR-010 | Typing indicator | CS-30 | 2 | Functional test | | | ⬜ |
 | FR-011 | Message status sent/delivered/read | CS-31 | 2 | TC-05, TC-06 (status observed) | | | ⬜ |
-| FR-012 | Create room, creator is first admin | CS-18 | 1 | TC-07 | | | ⬜ |
-| FR-013 | Join / leave room | CS-19 | 1 | Functional test | | | ⬜ |
-| FR-014 | Broadcast group message | CS-20 | 1 | TC-07 | | | ⬜ |
-| FR-015 | Only members can view/send in room | CS-21, CS-40 | 1, 2 | Negative/security test | | | ⬜ |
+| FR-012 | Create room, creator is first admin | CS-18 | 1 | TC-07 | `server/src/services/rooms/roomService.js` (createRoom), `server/src/sockets/roomHandlers.js` (`room:create`), `server/src/models/Room.js`, `server/src/models/RoomMembership.js` | `server/tests/services/roomService.test.js`, `server/tests/sockets/roomHandlers.test.js`, `server/tests/models/Room.test.js` | 🟨 code + tests done; live once the gateway (CS-07) is in |
+| FR-013 | Join / leave room | CS-19 | 1 | Functional test | `server/src/services/rooms/roomService.js` (joinRoom, leaveRoom), `server/src/sockets/roomHandlers.js` (`room:join`, `room:leave`) | `server/tests/services/roomService.test.js`, `server/tests/sockets/roomHandlers.test.js` | 🟨 code + tests done; live once the gateway (CS-07) is in |
+| FR-014 | Broadcast group message | CS-20 | 1 | TC-07 | `server/src/services/rooms/roomService.js` (sendRoomMessage), `server/src/sockets/roomHandlers.js` (createRoomMessageHandler → `message:new` to `room:<id>`) | `server/tests/sockets/roomHandlers.test.js`, `server/tests/services/roomService.test.js` | 🟨 code + tests done; live once the gateway (CS-07) is in |
+| FR-015 | Only members can view/send in room | CS-21, CS-40 | 1, 2 | Negative/security test | `server/src/services/rooms/roomService.js` (membership check before save), `server/src/services/messaging/messagingService.js` (getHistory isMember) | `server/tests/services/roomService.test.js` (non-member rejected), `server/tests/services/messageHistory.test.js` (AUTH_FORBIDDEN) | 🟨 send + history checks done; `GET /api/rooms/:roomId/messages` with CS-40 |
 | FR-016 | Room always retains ≥ 1 admin | CS-39 | 2 | Negative test | | | ⬜ |
-| FR-017 | Persist every message | CS-10, CS-11 | 1 | TC-05, TC-06 (persistence implied) | `server/src/models/Message.js`, `server/src/services/messaging/messagingService.js` (persist before ack, idempotency) | `server/tests/models/Message.test.js`, `server/tests/services/messagingService.test.js` | 🟨 DMs done; room messages with CS-20 |
+| FR-017 | Persist every message | CS-10, CS-11 | 1 | TC-05, TC-06 (persistence implied) | `server/src/models/Message.js`, `server/src/services/messaging/messagingService.js` (persist before ack, idempotency), `server/src/services/messaging/directRoom.js` (#67), `server/src/services/rooms/roomService.js` (sendRoomMessage) | `server/tests/models/Message.test.js`, `server/tests/services/messagingService.test.js`, `server/tests/services/directRoom.test.js` (#67), `server/tests/services/directMessagingIntegration.test.js` (#67), `server/tests/services/roomService.test.js` | 🟨 DM + room messages persisted; live once the gateway (CS-07) is in |
 | FR-018 | Paginated history retrieval | CS-12, CS-40 | 1, 2 | TC-10 | `server/src/services/messaging/messagingService.js` (getHistory), `server/src/routes/messages.js`, `client/src/components/DirectConversation.jsx`, `client/src/hooks/useDirectMessages.js` | `server/tests/services/messageHistory.test.js`, `server/tests/routes/messages.test.js`, `docs/postman/` (DM history folder) | 🟨 DM history done; room history with CS-40 |
 | FR-019 | Admin promotes a member | CS-36 | 2 | Functional test | | | ⬜ |
 | FR-020 | Admin removes a member | CS-37 | 2 | TC-08 (authorized path) | | | ⬜ |
