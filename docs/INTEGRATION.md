@@ -21,13 +21,28 @@ On every authenticated connection the gateway **joins the socket to a per-user r
 
 ```js
 const { registerMessagingHandlers } = require('./sockets/messagingHandlers');
+const { registerRoomHandlers, createRoomMessageHandler } = require('./sockets/roomHandlers');
+const { createRoomService } = require('./services/rooms/roomService');
+const RoomMembership = require('./models/RoomMembership');
+const roomService = createRoomService();
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   socket.join(`user:${socket.user.id}`);   // DMs and presence are delivered to this room
+  const onRoomMessage = createRoomMessageHandler(io, { service: roomService });
+  registerRoomHandlers(io, socket, { service: roomService });
   registerMessagingHandlers(io, socket, { service: messagingService, onRoomMessage });
-  registerRoomHandlers(io, socket, { /* Satvik */ });
+  // Rejoin existing group channels after reconnecting. The room:join handler
+  // also authorizes and joins newly joined members.
+  const memberships = await RoomMembership.find({ user_id: socket.user.id }).select('room_id').lean();
+  await Promise.all(memberships.map(({ room_id }) => socket.join(`room:${room_id}`)));
 });
 ```
+
+`createRoomMessageHandler` and `registerRoomHandlers` are exported from
+`server/src/sockets/roomHandlers.js`. The former is passed to
+`registerMessagingHandlers` so the existing `message:send` listener can route
+`{ roomId, content }` group messages without registering a second listener.
+`registerRoomHandlers` handles `room:create`, `room:join`, and `room:leave`.
 
 REST mounting:
 
@@ -97,6 +112,10 @@ There is **one** `message:send` listener, registered by `registerMessagingHandle
 ```
 
 Broadcast on the Socket.IO room `room:<roomId>` (sockets join it on `room:join` / on connect for rooms they're in).
+
+The room service checks membership before saving a group message. The
+`GET /api/messages/:conversationId` service already checks membership before
+returning history, so non-members cannot read group messages either.
 
 ## 6. Client (Satvik, CS-16 → Prithvi, CS-13)
 
