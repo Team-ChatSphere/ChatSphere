@@ -112,9 +112,13 @@ The DM view needs these from the app shell:
 ```
 client: message:send { toUserId, content, idempotencyKey: crypto.randomUUID() }
 server: saves Message (status 'sent')
-server → user:<to>, user:<from>:  message:new  { id, roomId, senderId, content, timestamp, status, idempotencyKey }
+server → user:<to>, user:<from>:  message:new  { id, roomId, senderId, content, timestamp, status, idempotencyKey,
+                                                 kind: 'direct', senderUsername }
 server → sender socket:           message:status { messageId, idempotencyKey, status: 'sent' }
+server → sender ack callback:     { ok: true, message } | { ok: false, error: { code, message } }
 on failure → sender socket:       error { code, message }
 ```
 
 Clients should reuse the same `idempotencyKey` when retrying after a dropped connection.
+
+`kind: 'direct'` and `senderUsername` are only on DM `message:new` events, so the dashboard can add a DM from someone new to its list (there is no user lookup API until CS-33). Group messages (CS-20) should send `kind: 'room'`.
