@@ -58,6 +58,9 @@ Building the messaging service (dependencies are injected so each service stays 
 
 ```js
 const { createMessagingService } = require('./services/messaging/messagingService');
+const { getOrCreateDirectRoom } = require('./services/messaging/directRoom');
+const RoomMembership = require('./models/RoomMembership');
+const User = require('./models/User');                           // CS-04
 const messagingService = createMessagingService({
   resolveDirectRoom: getOrCreateDirectRoom,                     // section 4
   userExists: async (id) => Boolean(await User.exists({ _id: id })),
@@ -101,7 +104,7 @@ DMs reuse Rooms (SRS Appendix B), so the Messaging service needs these exact fie
 
 **Direct rooms** are named `<smallerUserId>:<largerUserId>` (the two id strings sorted, 49 chars), so they fit the unique ≤ 50-char name rule with no schema change. To stop a group from taking that name, the Room service rejects group names matching `/^[0-9a-f]{24}:[0-9a-f]{24}$/i` with `VALIDATION_FAILED`. Both members get role `member`. Direct rooms never appear in room search and can't be joined with `room:join`.
 
-Prithvi writes `getOrCreateDirectRoom(userA, userB)` (CS-10) on top of these models once they're merged.
+`getOrCreateDirectRoom(userA, userB)` is in `server/src/services/messaging/directRoom.js` (CS-10). It returns the pair's direct room, creating the room and both `member` memberships on first contact; it's safe to call concurrently. `tests/services/directMessagingIntegration.test.js` shows the messaging service running on the real models.
 
 ## 5. Group messages (Satvik, CS-20)
 
