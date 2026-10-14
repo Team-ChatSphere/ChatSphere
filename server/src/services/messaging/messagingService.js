@@ -6,6 +6,8 @@ const { AppError } = require('../../utils/errors');
 
 const { MAX_CONTENT_LENGTH } = Message;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 100;
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 const OBJECT_ID = /^[0-9a-f]{24}$/i;
 
 function toMessageDto(msg) {
@@ -41,12 +43,21 @@ function validateDirectMessage({ fromUserId, toUserId, content, idempotencyKey }
   }
 }
 
+// Query params arrive as strings; missing means the default.
+function parsePositiveInt(value, fallback, name) {
+  if (value === undefined || value === '') return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) throw new AppError('VALIDATION_FAILED', `${name} must be a positive integer`);
+  return n;
+}
+
 /**
  * @param {object} deps
  * @param {(userA: string, userB: string) => Promise<{_id: any}>} deps.resolveDirectRoom  getOrCreateDirectRoom
  * @param {(userId: string) => Promise<boolean>} deps.userExists
+ * @param {(userId: string, roomId: string) => Promise<boolean>} deps.isMember  RoomMembership check
  */
-function createMessagingService({ resolveDirectRoom, userExists }) {
+function createMessagingService({ resolveDirectRoom, userExists, isMember }) {
   const findDuplicate = (fromUserId, idempotencyKey) =>
     Message.findOne({ sender_id: fromUserId, idempotencyKey });
 
@@ -79,7 +90,33 @@ function createMessagingService({ resolveDirectRoom, userExists }) {
     }
   }
 
-  return { sendDirectMessage };
+  // FR-018: newest first, paginated. Non-participants get AUTH_FORBIDDEN whether or
+  // not the conversation exists, so its existence is not leaked (SAD 3.3).
+  async function getHistory({ userId, conversationId, page, pageSize }) {
+    if (typeof conversationId !== 'string' || !OBJECT_ID.test(conversationId)) {
+      throw new AppError('VALIDATION_FAILED', 'conversationId must be a valid id');
+    }
+    const pageNum = parsePositiveInt(page, 1, 'page');
+    const size = Math.min(parsePositiveInt(pageSize, DEFAULT_PAGE_SIZE, 'pageSize'), MAX_PAGE_SIZE);
+
+    if (!(await isMember(String(userId), conversationId))) {
+      throw new AppError('AUTH_FORBIDDEN', 'You are not a participant in this conversation');
+    }
+
+    // Fetch one extra row to know whether another page exists.
+    const rows = await Message.find({ room_id: conversationId })
+      .sort({ timestamp: -1, _id: -1 })
+      .skip((pageNum - 1) * size)
+      .limit(size + 1)
+      .lean();
+
+    return {
+      messages: rows.slice(0, size).map(toMessageDto),
+      nextPage: rows.length > size ? pageNum + 1 : null,
+    };
+  }
+
+  return { sendDirectMessage, getHistory };
 }
 
 module.exports = { createMessagingService, toMessageDto };

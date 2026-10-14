@@ -10,11 +10,13 @@
     "node": ">=20"
   },
   "dependencies": {
+    "express": "^4.22.3",
     "mongoose": "^8.9.5"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "mongodb-memory-server": "^10.4.3"
+    "mongodb-memory-server": "^10.4.3",
+    "supertest": "^7.3.1"
   },
   "jest": {
     "testEnvironment": "node",
