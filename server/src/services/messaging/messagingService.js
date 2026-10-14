@@ -1,0 +1,85 @@
+// Messaging Service (SAD 2.2): direct messages and their history.
+// Room and User lookups are injected so this service does not depend on the
+// Room/Auth services' internals and can be unit-tested (SAD 3.4.3).
+const Message = require('../../models/Message');
+const { AppError } = require('../../utils/errors');
+
+const { MAX_CONTENT_LENGTH } = Message;
+const MAX_IDEMPOTENCY_KEY_LENGTH = 100;
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+
+function toMessageDto(msg) {
+  return {
+    id: String(msg._id),
+    roomId: String(msg.room_id),
+    senderId: String(msg.sender_id),
+    content: msg.content,
+    timestamp: msg.timestamp,
+    status: msg.status,
+    idempotencyKey: msg.idempotencyKey,
+  };
+}
+
+function validateDirectMessage({ fromUserId, toUserId, content, idempotencyKey }) {
+  if (typeof toUserId !== 'string' || !OBJECT_ID.test(toUserId)) {
+    throw new AppError('VALIDATION_FAILED', 'toUserId must be a valid user id');
+  }
+  if (toUserId === String(fromUserId)) {
+    throw new AppError('VALIDATION_FAILED', 'You cannot send a direct message to yourself');
+  }
+  if (typeof content !== 'string' || content.trim() === '') {
+    throw new AppError('VALIDATION_FAILED', 'Message content is required');
+  }
+  if (content.trim().length > MAX_CONTENT_LENGTH) {
+    throw new AppError('VALIDATION_FAILED', `Message content must be at most ${MAX_CONTENT_LENGTH} characters`);
+  }
+  if (
+    idempotencyKey !== undefined &&
+    (typeof idempotencyKey !== 'string' || idempotencyKey === '' || idempotencyKey.length > MAX_IDEMPOTENCY_KEY_LENGTH)
+  ) {
+    throw new AppError('VALIDATION_FAILED', 'idempotencyKey must be a non-empty string of at most 100 characters');
+  }
+}
+
+/**
+ * @param {object} deps
+ * @param {(userA: string, userB: string) => Promise<{_id: any}>} deps.resolveDirectRoom  getOrCreateDirectRoom
+ * @param {(userId: string) => Promise<boolean>} deps.userExists
+ */
+function createMessagingService({ resolveDirectRoom, userExists }) {
+  const findDuplicate = (fromUserId, idempotencyKey) =>
+    Message.findOne({ sender_id: fromUserId, idempotencyKey });
+
+  // FR-007/FR-017: the message is persisted before the caller acks 'sent' (SRS 6.2).
+  // A retried send with the same idempotency key returns the original (SAD 3.4.2).
+  async function sendDirectMessage({ fromUserId, toUserId, content, idempotencyKey }) {
+    validateDirectMessage({ fromUserId, toUserId, content, idempotencyKey });
+    if (!(await userExists(toUserId))) throw new AppError('NOT_FOUND', 'Recipient not found');
+
+    if (idempotencyKey) {
+      const existing = await findDuplicate(fromUserId, idempotencyKey);
+      if (existing) return { message: existing, duplicate: true };
+    }
+
+    const room = await resolveDirectRoom(String(fromUserId), toUserId);
+    try {
+      const message = await Message.create({
+        room_id: room._id,
+        sender_id: fromUserId,
+        content: content.trim(),
+        idempotencyKey,
+      });
+      return { message, duplicate: false };
+    } catch (err) {
+      // Two concurrent retries: the unique index lets only one through.
+      if (err.code === 11000 && idempotencyKey) {
+        return { message: await findDuplicate(fromUserId, idempotencyKey), duplicate: true };
+      }
+      throw err;
+    }
+  }
+
+  return { sendDirectMessage };
+}
+
+module.exports = { createMessagingService, toMessageDto };
