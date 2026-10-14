@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { useSocket } from '../state/SocketContext.jsx';
 import DirectConversation from '../components/DirectConversation.jsx';
+import RoomsPanel from '../components/RoomsPanel.jsx';
 import { loadRecentDms, saveRecentDms, touchDm } from '../state/recentDms.js';
 
 const USER_ID = /^[0-9a-f]{24}$/i;
@@ -134,7 +135,7 @@ export default function Dashboard() {
         <footer className="sidebar-footer"><span className={`connection-dot ${connectionState}`} />{connectionState === 'connected' ? 'Connected' : connectionState === 'error' ? 'Connection issue' : 'Connecting…'}</footer>
       </aside>
       <section className="main-panel">
-        {activeEntry ? (
+        {activeTab === 'rooms' ? <RoomsPanel /> : activeEntry ? (
           <DirectConversation
             key={activeEntry.peer.id}
             peer={activeEntry.peer}
