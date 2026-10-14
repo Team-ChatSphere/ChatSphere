@@ -82,6 +82,18 @@ function createRoomService({
     }
   }
 
+  // Restore only the socket's channel membership. This must never recreate a
+  // database membership: the user's membership may have been removed elsewhere.
+  async function restoreRoom({ userId, roomId }) {
+    validateId(userId, 'userId');
+    validateId(roomId, 'roomId');
+    if (!(await isMember(userId, roomId, RoomMembershipModel))) return { joined: false };
+
+    const room = await RoomModel.findById(roomId);
+    if (!room || room.type !== 'group') return { joined: false };
+    return { room, joined: true };
+  }
+
   async function leaveRoom({ userId, roomId }) {
     validateId(userId, 'userId');
     validateId(roomId, 'roomId');
@@ -141,7 +153,7 @@ function createRoomService({
     }
   }
 
-  return { createRoom, joinRoom, leaveRoom, sendRoomMessage };
+  return { createRoom, joinRoom, restoreRoom, leaveRoom, sendRoomMessage };
 }
 
 module.exports = { createRoomService, validateRoomName, DIRECT_ROOM_NAME, isMember };

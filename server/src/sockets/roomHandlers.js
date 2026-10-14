@@ -42,6 +42,18 @@ function registerRoomHandlers(io, socket, { service }) {
     }
   });
 
+  socket.on('room:restore', async (payload, ack) => {
+    try {
+      const { room, joined } = await service.restoreRoom({ userId: socket.user.id, roomId: payload?.roomId });
+      const id = payload?.roomId;
+      if (joined) socket.join(socketRoom(String(room._id)));
+      else socket.leave(socketRoom(id));
+      if (typeof ack === 'function') ack({ ok: true, roomId: id, joined });
+    } catch (err) {
+      replyError(socket, ack, err, 'room:restore');
+    }
+  });
+
   socket.on('room:leave', async (payload, ack) => {
     try {
       const { room, left } = await service.leaveRoom({ userId: socket.user.id, roomId: payload?.roomId });

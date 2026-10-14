@@ -31,8 +31,7 @@ io.on('connection', async (socket) => {
   const onRoomMessage = createRoomMessageHandler(io, { service: roomService });
   registerRoomHandlers(io, socket, { service: roomService });
   registerMessagingHandlers(io, socket, { service: messagingService, onRoomMessage });
-  // Rejoin existing group channels after reconnecting. The room:join handler
-  // also authorizes and joins newly joined members.
+  // Rejoin existing group channels after reconnecting from persisted membership.
   const memberships = await RoomMembership.find({ user_id: socket.user.id }).select('room_id').lean();
   await Promise.all(memberships.map(({ room_id }) => socket.join(`room:${room_id}`)));
 });
@@ -42,7 +41,11 @@ io.on('connection', async (socket) => {
 `server/src/sockets/roomHandlers.js`. The former is passed to
 `registerMessagingHandlers` so the existing `message:send` listener can route
 `{ roomId, content }` group messages without registering a second listener.
-`registerRoomHandlers` handles `room:create`, `room:join`, and `room:leave`.
+`registerRoomHandlers` handles `room:create`, `room:join`, `room:restore`, and `room:leave`.
+`room:restore` only rejoins the socket to a group channel when the database still
+has that user's membership; it never creates a membership. Clients use it to
+reconcile cached room IDs after reconnecting, so a leave from another device
+cannot be undone by stale browser storage.
 
 REST mounting:
 
