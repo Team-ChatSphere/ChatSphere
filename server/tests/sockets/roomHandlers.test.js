@@ -48,6 +48,35 @@ describe('room socket handlers (CS-18, CS-19)', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true, roomId: ROOM, joined: true });
   });
 
+  test('room:restore re-attaches only a confirmed member', async () => {
+    const { io } = mockIo();
+    const socket = mockSocket();
+    const service = { restoreRoom: jest.fn().mockResolvedValue({ room: { _id: ROOM }, joined: true }) };
+    registerRoomHandlers(io, socket, { service });
+    const ack = jest.fn();
+
+    await listener(socket, 'room:restore')({ roomId: ROOM }, ack);
+
+    expect(service.restoreRoom).toHaveBeenCalledWith({ userId: ALICE, roomId: ROOM });
+    expect(socket.join).toHaveBeenCalledWith(`room:${ROOM}`);
+    expect(socket.leave).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith({ ok: true, roomId: ROOM, joined: true });
+  });
+
+  test('room:restore leaves the channel and acknowledges a former member', async () => {
+    const { io } = mockIo();
+    const socket = mockSocket();
+    const service = { restoreRoom: jest.fn().mockResolvedValue({ joined: false }) };
+    registerRoomHandlers(io, socket, { service });
+    const ack = jest.fn();
+
+    await listener(socket, 'room:restore')({ roomId: ROOM }, ack);
+
+    expect(socket.join).not.toHaveBeenCalled();
+    expect(socket.leave).toHaveBeenCalledWith(`room:${ROOM}`);
+    expect(ack).toHaveBeenCalledWith({ ok: true, roomId: ROOM, joined: false });
+  });
+
   test('room:leave removes the socket from the channel and broadcasts membership change', async () => {
     const { io, inRoom, emit } = mockIo();
     const socket = mockSocket();
