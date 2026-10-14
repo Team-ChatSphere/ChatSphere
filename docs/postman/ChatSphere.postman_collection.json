@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "ChatSphere API v1",
-    "description": "REST API from SAD 3.2.1 (Test Plan 8). Run \"Auth\" first: Register creates a user and Login stores {{token}}. Set {{conversationId}} to a DM room id the user belongs to before running \"DM history\".",
+    "description": "REST API from SAD 3.2.1 (Test Plan 8). Run \"Auth\" first: Register creates a fresh user on every run and Login stores {{token}}. Set {{conversationId}} to a DM room id the user belongs to before running \"DM history\".",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -14,21 +14,6 @@
       }
     ]
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "if (!pm.collectionVariables.get('username')) {",
-          "  const suffix = Date.now().toString(36);",
-          "  pm.collectionVariables.set('username', 'pm_' + suffix);",
-          "  pm.collectionVariables.set('email', 'pm_' + suffix + '@example.com');",
-          "}"
-        ]
-      }
-    }
-  ],
   "variable": [
     {
       "key": "baseUrl",
@@ -66,6 +51,21 @@
         {
           "name": "Register (FR-001, FR-002)",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Fresh identity every run, so repeated runs never hit an already-registered email.",
+                  "// The duplicate-email and short-password requests below reuse it on purpose.",
+                  "const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);",
+                  "pm.collectionVariables.set(\"username\", \"pm_\" + suffix);",
+                  "pm.collectionVariables.set(\"email\", \"pm_\" + suffix + \"@example.com\");",
+                  "pm.collectionVariables.unset(\"token\");",
+                  "pm.collectionVariables.unset(\"userId\");"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
