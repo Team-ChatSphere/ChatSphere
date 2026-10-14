@@ -13,6 +13,11 @@ function validateId(value, field) {
   }
 }
 
+// Shared membership check for room messaging and the DM history service.
+async function isMember(userId, roomId, RoomMembershipModel = RoomMembership) {
+  return Boolean(await RoomMembershipModel.exists({ room_id: roomId, user_id: userId }));
+}
+
 function validateRoomName(value) {
   if (typeof value !== 'string' || value.trim() === '') {
     throw new AppError('VALIDATION_FAILED', 'Room name is required');
@@ -102,8 +107,9 @@ function createRoomService({
       throw new AppError('VALIDATION_FAILED', 'idempotencyKey must be a non-empty string of at most 100 characters');
     }
 
-    const isMember = await RoomMembershipModel.exists({ room_id: roomId, user_id: userId });
-    if (!isMember) throw new AppError('AUTH_FORBIDDEN', 'You are not a member of this room');
+    if (!(await isMember(userId, roomId, RoomMembershipModel))) {
+      throw new AppError('AUTH_FORBIDDEN', 'You are not a member of this room');
+    }
     const room = await RoomModel.findById(roomId);
     if (!room) throw new AppError('NOT_FOUND', 'Room not found');
     if (room.type !== 'group') throw new AppError('VALIDATION_FAILED', 'Room messages can only be sent to group rooms');
@@ -138,4 +144,4 @@ function createRoomService({
   return { createRoom, joinRoom, leaveRoom, sendRoomMessage };
 }
 
-module.exports = { createRoomService, validateRoomName, DIRECT_ROOM_NAME };
+module.exports = { createRoomService, validateRoomName, DIRECT_ROOM_NAME, isMember };
