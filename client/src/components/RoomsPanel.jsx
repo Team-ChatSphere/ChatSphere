@@ -110,7 +110,15 @@ export default function RoomsPanel() {
 
   const restoreMemberships = useCallback(() => {
     if (!socket?.connected) return;
-    rooms.forEach((room) => socket.emit('room:join', { roomId: room.roomId }));
+    rooms.forEach((room) => {
+      socket.timeout(10000).emit('room:restore', { roomId: room.roomId }, (timeoutError, result) => {
+        // Keep cached rooms on transient failures; remove one only when the
+        // server confirms that this user is no longer a member.
+        if (timeoutError || !result?.ok || result.joined) return;
+        setRooms((current) => current.filter((item) => item.roomId !== room.roomId));
+        setActiveRoomId((current) => current === room.roomId ? '' : current);
+      });
+    });
   }, [rooms, socket]);
 
   useEffect(() => {
