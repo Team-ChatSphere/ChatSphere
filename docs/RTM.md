@@ -31,7 +31,7 @@ Last updated: 14 Oct 2026 (after PRs #15–#20, #58, #59, #61, #62).
 | FR-021 | Reject non-admin admin actions | CS-38 | 2 | TC-08 | | | ⬜ |
 | NFR-001 | 95% message delivery ≤ 300 ms | CS-34 | 2 | TC-05, load test | | | ⬜ |
 | NFR-002 | 95% REST response ≤ 1 s | CS-34 | 2 | Load test | | | ⬜ |
-| SEC-001 | No plaintext passwords | CS-03 | 1 | Code review |  | `docs/postman/` (Auth folder), short-password request | ⬜ |
+| SEC-001 | No plaintext passwords | CS-03 | 1 | Code review |  |  | ⬜ needs a backend test that the stored password is a bcrypt hash (CS-03) |
 | SEC-002 | RBAC on room-admin actions | CS-38, CS-27 | 2 | TC-08 | | | ⬜ |
 | SEC-003 | Sanitize message content (XSS) | CS-32 | 2 | TC-09 | | | ⬜ |
 | SEC-004 | Reject expired/invalid JWTs | CS-07, CS-27 | 1, 2 | TC-04 | | | ⬜ |
