@@ -32,7 +32,7 @@ CI runs the same on every PR and push to `develop` / `main`.
 
 ## Docs
 
-- `docs/`: SRS v1.1, SAD v1.0, Test Plan v1.0, integration contract (`INTEGRATION.md`), RTM, deviation log, Postman collection
+- `docs/`: SRS v1.1, SAD v1.0, Test Plan v1.0 (PDF), integration contract (`INTEGRATION.md`), RTM, deviation log, Postman collection
 - Synopsis and the combined Part-1 PDF are in the repo root
 
 ## Workflow
