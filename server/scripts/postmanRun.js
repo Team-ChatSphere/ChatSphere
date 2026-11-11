@@ -6,15 +6,24 @@
 //   BASE_URL=http://localhost:4000 npm run postman
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 const { seedDm } = require('./seedDm');
 
 const ROOT = path.join(__dirname, '..', '..');
-// Paths relative to the repo root (run from there), so a space in the checkout path can't
-// break the shell command on Windows.
+// Paths relative to the repo root (newman runs from there), so a space in the checkout
+// path can't break the shell command on Windows.
 const COLLECTION = 'docs/postman/ChatSphere.postman_collection.json';
 const OUT_REL = 'docs/postman/results';
 const OUT = path.join(ROOT, 'docs', 'postman', 'results');
+
+function runNewman(args) {
+  // Async on purpose: the server may be running in this same process, so a blocking
+  // spawnSync would freeze it and newman's first request would never be answered.
+  return new Promise((resolve) => {
+    const child = spawn('npx', args, { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+    child.on('close', resolve);
+  });
+}
 
 async function main() {
   let base = process.env.BASE_URL;
@@ -33,23 +42,20 @@ async function main() {
 
   const seed = await seedDm(base);
   fs.mkdirSync(OUT, { recursive: true });
-  const jsonOut = path.join(OUT, 'newman-results.json');
-  const run = spawnSync(
-    'npx',
-    ['-y', 'newman@6', 'run', COLLECTION,
-      '--env-var', `baseUrl=${base}`,
-      '--env-var', `conversationId=${seed.conversationId}`,
-      '--env-var', `dmUser=${seed.dmUser}`,
-      '--env-var', `dmPassword=${seed.dmPassword}`,
-      '-r', 'cli,json,junit',
-      '--reporter-json-export', `${OUT_REL}/newman-results.json`,
-      '--reporter-junit-export', `${OUT_REL}/newman-results.xml`],
-    { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' }
-  );
+  const status = await runNewman([
+    '-y', 'newman@6', 'run', COLLECTION,
+    '--env-var', `baseUrl=${base}`,
+    '--env-var', `conversationId=${seed.conversationId}`,
+    '--env-var', `dmUser=${seed.dmUser}`,
+    '--env-var', `dmPassword=${seed.dmPassword}`,
+    '-r', 'cli,json,junit',
+    '--reporter-json-export', `${OUT_REL}/newman-results.json`,
+    '--reporter-junit-export', `${OUT_REL}/newman-results.xml`,
+  ]);
   await stop();
 
   // A short human-readable summary next to the raw results.
-  const { run: r } = JSON.parse(fs.readFileSync(jsonOut, 'utf8'));
+  const { run: r } = JSON.parse(fs.readFileSync(path.join(OUT, 'newman-results.json'), 'utf8'));
   const rows = r.executions.map((e) => {
     const asserts = e.assertions || [];
     const failed = asserts.filter((a) => a.error).length;
@@ -59,7 +65,7 @@ async function main() {
   const md = [
     '# Postman / newman run',
     '',
-    `Run: ${new Date(r.timings.started).toISOString()} · server: ${process.env.BASE_URL ? process.env.BASE_URL : 'local server, in-memory MongoDB (npm run postman)'}`,
+    `Run: ${new Date(r.timings.started).toISOString()} · server: ${process.env.BASE_URL || 'local server, in-memory MongoDB (`npm run postman`)'}`,
     '',
     `**Requests:** ${s.requests.total} (${s.requests.failed} failed) · **Assertions:** ${s.assertions.total} (${s.assertions.failed} failed) · **Average response:** ${Math.round(r.timings.responseAverage)} ms`,
     '',
@@ -71,7 +77,7 @@ async function main() {
     '',
   ].join('\n');
   fs.writeFileSync(path.join(OUT, 'README.md'), md);
-  process.exit(run.status ?? 1);
+  process.exit(status ?? 1);
 }
 
 main().catch((err) => {
