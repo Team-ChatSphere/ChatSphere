@@ -67,7 +67,7 @@ describe('RoomsPanel member and unread controls (CS-41)', () => {
     render(<RoomsPanel joinRoomSelection={{ roomId: ROOM, name: 'research' }} onRoomSelectionHandled={handled} />);
 
     await waitFor(() => expect(socket.emitted.some((item) => item.event === 'room:join' && item.payload.roomId === ROOM)).toBe(true));
-    expect(await screen.findByText('research')).toBeTruthy();
+    expect(await screen.findByLabelText('Room research')).toBeTruthy();
     expect(handled).toHaveBeenCalled();
   });
 });
