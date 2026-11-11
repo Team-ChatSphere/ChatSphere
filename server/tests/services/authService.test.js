@@ -39,6 +39,20 @@ describe('register (FR-001, FR-002, SEC-001, TC-01, TC-02)', () => {
     expect(await User.countDocuments()).toBe(1);
   });
 
+  test('two concurrent registrations differing only in case create exactly one account', async () => {
+    const results = await Promise.allSettled([
+      auth.register({ ...alice, username: 'Alice', email: 'a1@example.com' }),
+      auth.register({ ...alice, username: 'alice', email: 'a2@example.com' }),
+      auth.register({ ...alice, username: 'ALICE', email: 'a3@example.com' }),
+    ]);
+
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    for (const r of results.filter((x) => x.status === 'rejected')) {
+      expect(r.reason).toMatchObject({ code: 'VALIDATION_FAILED' });
+    }
+    expect(await User.countDocuments()).toBe(1);
+  });
+
   test.each([
     ['short password', { password: 'short' }],
     ['password over 72 chars', { password: 'x'.repeat(73) }],
@@ -104,6 +118,18 @@ describe('verifyToken (FR-004, SEC-004, TC-04)', () => {
     ['alg none', `${Buffer.from('{"alg":"none"}').toString('base64url')}.${Buffer.from('{"sub":"x","username":"x"}').toString('base64url')}.`],
   ])('rejects a %s token with AUTH_INVALID_TOKEN', (_label, token) => {
     expect(() => auth.verifyToken(token)).toThrow(expect.objectContaining({ code: 'AUTH_INVALID_TOKEN' }));
+  });
+
+  test('authenticate also requires the user to still exist', async () => {
+    const { userId } = await auth.register(alice);
+    const { token } = await auth.login({ usernameOrEmail: 'alice', password: alice.password });
+    await expect(auth.authenticate(token)).resolves.toEqual({ id: userId, username: 'alice' });
+
+    await User.deleteOne({ _id: userId });
+
+    await expect(auth.authenticate(token)).rejects.toMatchObject({ code: 'AUTH_INVALID_TOKEN', message: 'User no longer exists' });
+    const ghost = jwt.sign({ sub: 'not-an-object-id', username: 'x' }, SECRET);
+    await expect(auth.authenticate(ghost)).rejects.toMatchObject({ code: 'AUTH_INVALID_TOKEN' });
   });
 
   test('a tampered payload is rejected', async () => {
