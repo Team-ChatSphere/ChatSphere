@@ -100,7 +100,16 @@ function createAuthService({ jwtSecret, jwtExpiresIn = '12h', bcryptRounds = 10,
     }
   }
 
-  return { register, login, signToken, verifyToken };
+  // Used by the JWT middleware: a valid signature isn't enough, the account must still
+  // exist (a token for a deleted or never-created user is refused).
+  async function authenticate(token) {
+    const user = verifyToken(token);
+    const exists = await UserModel.exists({ _id: user.id }).catch(() => null); // malformed id → not found
+    if (!exists) throw new AppError('AUTH_INVALID_TOKEN', 'User no longer exists');
+    return user;
+  }
+
+  return { register, login, signToken, verifyToken, authenticate };
 }
 
 module.exports = { createAuthService };
