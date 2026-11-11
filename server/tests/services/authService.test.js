@@ -120,6 +120,18 @@ describe('verifyToken (FR-004, SEC-004, TC-04)', () => {
     expect(() => auth.verifyToken(token)).toThrow(expect.objectContaining({ code: 'AUTH_INVALID_TOKEN' }));
   });
 
+  test('authenticate also requires the user to still exist', async () => {
+    const { userId } = await auth.register(alice);
+    const { token } = await auth.login({ usernameOrEmail: 'alice', password: alice.password });
+    await expect(auth.authenticate(token)).resolves.toEqual({ id: userId, username: 'alice' });
+
+    await User.deleteOne({ _id: userId });
+
+    await expect(auth.authenticate(token)).rejects.toMatchObject({ code: 'AUTH_INVALID_TOKEN', message: 'User no longer exists' });
+    const ghost = jwt.sign({ sub: 'not-an-object-id', username: 'x' }, SECRET);
+    await expect(auth.authenticate(ghost)).rejects.toMatchObject({ code: 'AUTH_INVALID_TOKEN' });
+  });
+
   test('a tampered payload is rejected', async () => {
     await auth.register(alice);
     const { token } = await auth.login({ usernameOrEmail: 'alice', password: alice.password });

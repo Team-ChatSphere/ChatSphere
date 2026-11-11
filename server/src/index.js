@@ -2,24 +2,18 @@
 const mongoose = require('mongoose');
 const { loadConfig } = require('./config');
 const { createServer } = require('./server');
+const { createGateway } = require('./gateway');
 
 async function main() {
   const config = loadConfig();
   await mongoose.connect(config.mongoUri);
   console.log('MongoDB connected');
 
+  const gateway = createGateway({ jwtSecret: config.jwtSecret, jwtExpiresIn: config.jwtExpiresIn });
   const { httpServer, io } = createServer({
     clientOrigins: config.clientOrigins,
-    registerRoutes() {
-      // CS-03 / CS-05 (auth routes) and CS-07 (jwtAuth) plug in here, e.g.
-      //   app.use('/api/auth', authRouter);
-      //   app.use('/api/messages', jwtAuth, createMessagesRouter({ service: messagingService }));
-      // See docs/INTEGRATION.md section 2.
-    },
-    registerSockets() {
-      // CS-07: io.use(socketJwtAuth) and io.on('connection', ...) that joins `user:<id>`
-      // and calls registerMessagingHandlers / registerRoomHandlers (docs/INTEGRATION.md section 2).
-    },
+    registerRoutes: gateway.registerRoutes,
+    registerSockets: gateway.registerSockets,
   });
 
   httpServer.listen(config.port, () => console.log(`ChatSphere server on http://localhost:${config.port}`));
