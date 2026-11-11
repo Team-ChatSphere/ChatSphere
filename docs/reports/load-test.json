@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-11T18:01:04.622Z",
+  "machine": "AMD Ryzen 7 260 w/ Radeon 780M Graphics, 16 cores, 23 GB RAM, Node v24.20.0",
+  "setup": {
+    "users": 100,
+    "senders": 50,
+    "messagesPerSender": 20,
+    "sendIntervalMs": 600,
+    "restRequests": 500,
+    "restConcurrency": 25
+  },
+  "delivery": {
+    "count": 1000,
+    "min": 3.3,
+    "mean": 9.4,
+    "p50": 8.9,
+    "p95": 16.2,
+    "p99": 20.6,
+    "max": 35.9,
+    "lost": 0,
+    "throughputPerSec": 67.9,
+    "targetP95Ms": 300,
+    "pass": true
+  },
+  "rest": {
+    "count": 500,
+    "min": 22.3,
+    "mean": 46.6,
+    "p50": 42.8,
+    "p95": 66.1,
+    "p99": 71.8,
+    "max": 84.1,
+    "errors": 0,
+    "targetP95Ms": 1000,
+    "pass": true
+  }
+}
