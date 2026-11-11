@@ -33,6 +33,13 @@ describe('User model (CS-04)', () => {
     await expect(User.create({ ...valid(), username: 'bob' })).rejects.toMatchObject({ code: 11000 });
   });
 
+  test('usernames are unique ignoring case, enforced by the database index itself', async () => {
+    await User.create(valid());
+
+    await expect(User.create({ ...valid(), username: 'ALICE', email: 'other@example.com' })).rejects.toMatchObject({ code: 11000 });
+    expect(await User.countDocuments()).toBe(1);
+  });
+
   test('the password hash is never serialised', async () => {
     const user = await User.create(valid());
 
