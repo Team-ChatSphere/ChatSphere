@@ -31,3 +31,4 @@
 .new-dm .actions { display: flex; gap: 8px; justify-content: flex-end; }
 .new-dm .button { padding: 8px 12px; font-size: 12px; }
 .new-dm .form-error { font-size: 11px; padding: 6px 8px; }
+.dm-typing { margin: 0 28px 6px; font-size: 11px; color: var(--muted); font-style: italic; }

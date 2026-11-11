@@ -147,4 +147,76 @@ describe('DirectConversation (CS-13)', () => {
     await waitFor(() => expect(contents()).toEqual(['<img src=x onerror=alert(1)>']));
     expect(container.querySelector('img')).toBeNull();
   });
+
+  test('server-escaped content is shown as the original text, still not as HTML', async () => {
+    apiRequest.mockResolvedValue({
+      messages: [msg(1, { content: '&lt;b&gt;bold&lt;/b&gt; &amp; &quot;quoted&quot; it&#39;s' })],
+      nextPage: null,
+    });
+    const { container } = render(<DirectConversation peer={BOB} conversationId={ROOM} />);
+
+    await waitFor(() => expect(contents()).toEqual(['<b>bold</b> & "quoted" it\'s']));
+    expect(container.querySelector('.dm-bubble b')).toBeNull();
+  });
+});
+
+describe('ticks, read receipts and typing (CS-30, CS-31)', () => {
+  const emitted = (event) => socket.emit.mock.calls.filter(([e]) => e === event).map(([, payload]) => payload);
+
+  test('reports the peer’s messages as read once, never its own', async () => {
+    apiRequest.mockResolvedValue({ messages: [msg(2), msg(1)], nextPage: null }); // msg(1) from Bob, msg(2) mine
+    render(<DirectConversation peer={BOB} conversationId={ROOM} />);
+    await waitFor(() => expect(contents()).toHaveLength(2));
+
+    socket.serverEmit('message:status', { messageId: msg(2).id, status: 'read' });
+
+    expect(emitted('message:read')).toEqual([{ messageId: msg(1).id }]);
+  });
+
+  test('a late "sent" ack never moves a delivered/read tick backwards', async () => {
+    apiRequest.mockResolvedValue({ messages: [], nextPage: null });
+    render(<DirectConversation peer={BOB} conversationId={ROOM} />);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalled());
+
+    typeAndSend('hi');
+    const { payload, ack } = socket.lastSend();
+    const saved = msg(5, { senderId: ME.id, content: 'hi', idempotencyKey: payload.idempotencyKey });
+    socket.serverEmit('message:new', { ...saved, kind: 'direct' });
+    socket.serverEmit('message:status', { messageId: saved.id, idempotencyKey: payload.idempotencyKey, status: 'read' });
+    act(() => ack(null, { ok: true, message: saved })); // ack still says "sent"
+
+    expect(screen.getByLabelText('Read')).toBeTruthy();
+  });
+
+  test('typing sends one typing:start, then typing:stop after 3 s idle', async () => {
+    apiRequest.mockResolvedValue({ messages: [], nextPage: null });
+    render(<DirectConversation peer={BOB} conversationId={ROOM} />);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalled());
+    vi.useFakeTimers();
+
+    const box = screen.getByLabelText('Message bob');
+    fireEvent.change(box, { target: { value: 'h' } });
+    fireEvent.change(box, { target: { value: 'he' } });
+    expect(emitted('typing:start')).toEqual([{ conversationId: ROOM }]);
+    expect(emitted('typing:stop')).toEqual([]);
+
+    act(() => vi.advanceTimersByTime(3000));
+    expect(emitted('typing:stop')).toEqual([{ conversationId: ROOM }]);
+    vi.useRealTimers();
+  });
+
+  test('shows "bob is typing…" for this conversation and hides it on stop', async () => {
+    apiRequest.mockResolvedValue({ messages: [], nextPage: null });
+    render(<DirectConversation peer={BOB} conversationId={ROOM} />);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalled());
+
+    socket.serverEmit('typing:update', { conversationId: 'e'.repeat(24), userId: BOB.id, typing: true });
+    expect(screen.queryByText('bob is typing…')).toBeNull();
+
+    socket.serverEmit('typing:update', { conversationId: ROOM, userId: BOB.id, username: 'bob', typing: true });
+    expect(screen.getByText('bob is typing…')).toBeTruthy();
+
+    socket.serverEmit('typing:update', { conversationId: ROOM, userId: BOB.id, username: 'bob', typing: false });
+    expect(screen.queryByText('bob is typing…')).toBeNull();
+  });
 });

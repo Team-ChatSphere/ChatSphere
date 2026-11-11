@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { useSocket } from '../state/SocketContext.jsx';
+import { decodeEntities } from '../utils/text.js';
 import './RoomsPanel.css';
 
 const storageKey = (userId) => `chatsphere.rooms.${userId}`;
@@ -76,7 +77,7 @@ function RoomConversation({ room, socket, user, onLeave }) {
               const mine = message.senderId === user.id;
               const author = mine ? 'You' : `Member ${message.senderId.slice(0, 6)}`;
               return <li className={`room-message ${mine ? 'mine' : ''}`} key={message.id}>
-                <span className="room-author">{author}</span><p>{message.content}</p>
+                <span className="room-author">{author}</span><p>{decodeEntities(message.content)}</p>
                 <time>{message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</time>
               </li>;
             })}

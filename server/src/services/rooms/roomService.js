@@ -2,10 +2,10 @@ const Room = require('../../models/Room');
 const RoomMembership = require('../../models/RoomMembership');
 const Message = require('../../models/Message');
 const { AppError } = require('../../utils/errors');
+const { cleanContent } = require('../messaging/messagingService');
 
 const OBJECT_ID = /^[0-9a-f]{24}$/i;
 const DIRECT_ROOM_NAME = /^[0-9a-f]{24}:[0-9a-f]{24}$/i;
-const MAX_CONTENT_LENGTH = Message.MAX_CONTENT_LENGTH;
 
 function validateId(value, field) {
   if (typeof value !== 'string' || !OBJECT_ID.test(value)) {
@@ -107,13 +107,8 @@ function createRoomService({
   async function sendRoomMessage({ userId, roomId, content, idempotencyKey }) {
     validateId(userId, 'userId');
     validateId(roomId, 'roomId');
-    if (typeof content !== 'string' || content.trim() === '') {
-      throw new AppError('VALIDATION_FAILED', 'Message content is required');
-    }
-    const normalizedContent = content.trim();
-    if (normalizedContent.length > MAX_CONTENT_LENGTH) {
-      throw new AppError('VALIDATION_FAILED', `Message content must be at most ${MAX_CONTENT_LENGTH} characters`);
-    }
+    // SEC-003: the same sanitiser as DMs, applied before anything is stored.
+    const normalizedContent = cleanContent(content);
     if (idempotencyKey !== undefined &&
         (typeof idempotencyKey !== 'string' || !idempotencyKey || idempotencyKey.length > 100)) {
       throw new AppError('VALIDATION_FAILED', 'idempotencyKey must be a non-empty string of at most 100 characters');

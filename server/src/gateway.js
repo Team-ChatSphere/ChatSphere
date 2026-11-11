@@ -1,6 +1,7 @@
 // Wires every service into the REST API and the WebSocket Gateway (SAD 2.1–2.2,
 // docs/INTEGRATION.md §2). Used by index.js and by the end-to-end tests.
 const User = require('./models/User');
+const Room = require('./models/Room');
 const RoomMembership = require('./models/RoomMembership');
 const { createAuthService } = require('./services/auth/authService');
 const { createMessagingService } = require('./services/messaging/messagingService');
@@ -9,7 +10,7 @@ const { createRoomService, isMember } = require('./services/rooms/roomService');
 const { createJwtAuth, createSocketJwtAuth } = require('./middleware/jwtAuth');
 const { createAuthRouter } = require('./routes/auth');
 const { createMessagesRouter } = require('./routes/messages');
-const { registerMessagingHandlers, userRoom } = require('./sockets/messagingHandlers');
+const { registerMessagingHandlers, deliverPending, userRoom } = require('./sockets/messagingHandlers');
 const { registerRoomHandlers, createRoomMessageHandler, socketRoom } = require('./sockets/roomHandlers');
 
 /**
@@ -26,7 +27,15 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence } = {})
     resolveDirectRoom: getOrCreateDirectRoom,
     userExists: async (id) => Boolean(await User.exists({ _id: id })),
     isMember: (userId, roomId) => isMember(userId, roomId),
+    directRoomIdsFor: async (userId) => {
+      const roomIds = (await RoomMembership.find({ user_id: userId }).select('room_id').lean()).map((m) => m.room_id);
+      return (await Room.find({ _id: { $in: roomIds }, type: 'direct' }).select('_id').lean()).map((r) => r._id);
+    },
+    membersOf: async (roomId) =>
+      (await RoomMembership.find({ room_id: roomId }).select('user_id').lean()).map((m) => String(m.user_id)),
   });
+  const usernamesFor = async (ids) =>
+    Object.fromEntries((await User.find({ _id: { $in: ids } }).select('username').lean()).map((u) => [String(u._id), u.username]));
   const jwtAuth = createJwtAuth(authService);
 
   function registerRoutes(app) {
@@ -52,6 +61,7 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence } = {})
         const memberships = await RoomMembership.find({ user_id: socket.user.id }).select('room_id').lean();
         await Promise.all(memberships.map(({ room_id }) => socket.join(socketRoom(String(room_id)))));
         if (presence) await presence.onConnect(io, socket);
+        await deliverPending(io, socket, { service: messagingService, usernamesFor });
         socket.emit('session:ready', { userId: socket.user.id, username: socket.user.username });
       } catch (err) {
         console.error('connection setup failed', err);
