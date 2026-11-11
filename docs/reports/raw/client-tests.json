@@ -1,0 +1,242 @@
+{
+  "numTotalTests": 40,
+  "numPassedTests": 40,
+  "numFailedTests": 0,
+  "testResults": [
+    {
+      "name": "client/src/App.test.jsx",
+      "assertionResults": [
+        {
+          "fullName": "routing (CS-16) / with token=null shows auth page: login",
+          "status": "passed",
+          "duration": 30.148300000000063
+        },
+        {
+          "fullName": "routing (CS-16) /dashboard with token=null shows auth page: login",
+          "status": "passed",
+          "duration": 2.8069000000000415
+        },
+        {
+          "fullName": "routing (CS-16) /register with token=null shows auth page: register",
+          "status": "passed",
+          "duration": 2.5539000000001124
+        },
+        {
+          "fullName": "routing (CS-16) / with token=jwt shows dashboard",
+          "status": "passed",
+          "duration": 2.6603999999999814
+        },
+        {
+          "fullName": "routing (CS-16) /dashboard with token=jwt shows dashboard",
+          "status": "passed",
+          "duration": 1.690099999999802
+        },
+        {
+          "fullName": "routing (CS-16) /no-such-page with token=jwt shows dashboard",
+          "status": "passed",
+          "duration": 2.662599999999884
+        }
+      ]
+    },
+    {
+      "name": "client/src/components/DirectConversation.test.jsx",
+      "assertionResults": [
+        {
+          "fullName": "DirectConversation (CS-13) loads history oldest-first and pages in older messages (FR-018)",
+          "status": "passed",
+          "duration": 129.2246
+        },
+        {
+          "fullName": "DirectConversation (CS-13) sends with an idempotency key, shows it immediately, then marks it sent (FR-007)",
+          "status": "passed",
+          "duration": 19.19990000000007
+        },
+        {
+          "fullName": "DirectConversation (CS-13) server message:new for the same send replaces the optimistic copy instead of duplicating it",
+          "status": "passed",
+          "duration": 11.250700000000052
+        },
+        {
+          "fullName": "DirectConversation (CS-13) shows messages from the peer live and ignores other conversations (FR-008)",
+          "status": "passed",
+          "duration": 5.72420000000011
+        },
+        {
+          "fullName": "DirectConversation (CS-13) a failed send can be retried with the same idempotency key",
+          "status": "passed",
+          "duration": 17.629200000000083
+        },
+        {
+          "fullName": "DirectConversation (CS-13) a send with no server response is marked as failed",
+          "status": "passed",
+          "duration": 12.56490000000008
+        },
+        {
+          "fullName": "DirectConversation (CS-13) a brand-new DM adopts the room id from the first reply and reports it",
+          "status": "passed",
+          "duration": 7.38559999999984
+        },
+        {
+          "fullName": "DirectConversation (CS-13) message content is rendered as text, not HTML (SEC-003)",
+          "status": "passed",
+          "duration": 9.280299999999897
+        },
+        {
+          "fullName": "DirectConversation (CS-13) server-escaped content is shown as the original text, still not as HTML",
+          "status": "passed",
+          "duration": 7.63390000000004
+        },
+        {
+          "fullName": "ticks, read receipts and typing (CS-30, CS-31) reports the peer’s messages as read once, never its own",
+          "status": "passed",
+          "duration": 6.241899999999987
+        },
+        {
+          "fullName": "ticks, read receipts and typing (CS-30, CS-31) a late \"sent\" ack never moves a delivered/read tick backwards",
+          "status": "passed",
+          "duration": 14.433100000000195
+        },
+        {
+          "fullName": "ticks, read receipts and typing (CS-30, CS-31) typing sends one typing:start, then typing:stop after 3 s idle",
+          "status": "passed",
+          "duration": 4.745099999999866
+        },
+        {
+          "fullName": "ticks, read receipts and typing (CS-30, CS-31) shows \"bob is typing…\" for this conversation and hides it on stop",
+          "status": "passed",
+          "duration": 8.188100000000077
+        }
+      ]
+    },
+    {
+      "name": "client/src/api/client.test.js",
+      "assertionResults": [
+        {
+          "fullName": "apiRequest defaults to the server on :4000",
+          "status": "passed",
+          "duration": 4.4990999999999985
+        },
+        {
+          "fullName": "apiRequest sends JSON with a bearer token and returns the parsed body",
+          "status": "passed",
+          "duration": 3.317700000000059
+        },
+        {
+          "fullName": "apiRequest no token → no Authorization header; no body → no Content-Type",
+          "status": "passed",
+          "duration": 0.39020000000004984
+        },
+        {
+          "fullName": "apiRequest an error response throws with the server message, code and status",
+          "status": "passed",
+          "duration": 2.197099999999864
+        },
+        {
+          "fullName": "apiRequest an error without a JSON body falls back to a generic message",
+          "status": "passed",
+          "duration": 0.6760999999999058
+        },
+        {
+          "fullName": "apiRequest 204 No Content resolves to null",
+          "status": "passed",
+          "duration": 0.26109999999994216
+        }
+      ]
+    },
+    {
+      "name": "client/src/state/AuthContext.test.jsx",
+      "assertionResults": [
+        {
+          "fullName": "AuthContext (CS-16, FR-003) signIn stores the token and the user decoded from it",
+          "status": "passed",
+          "duration": 31.46140000000014
+        },
+        {
+          "fullName": "AuthContext (CS-16, FR-003) restores the session from storage on reload",
+          "status": "passed",
+          "duration": 2.055699999999888
+        },
+        {
+          "fullName": "AuthContext (CS-16, FR-003) an unexpected login response is rejected and nothing is stored",
+          "status": "passed",
+          "duration": 3.5126999999999953
+        },
+        {
+          "fullName": "AuthContext (CS-16, FR-003) signOut clears the session",
+          "status": "passed",
+          "duration": 3.0323000000000775
+        },
+        {
+          "fullName": "AuthContext (CS-16, FR-003) registerAccount posts to /api/auth/register",
+          "status": "passed",
+          "duration": 1.8511000000000877
+        },
+        {
+          "fullName": "AuthContext (CS-16, FR-003) useAuth outside the provider is a programming error",
+          "status": "passed",
+          "duration": 12.998000000000047
+        }
+      ]
+    },
+    {
+      "name": "client/src/state/recentDms.test.js",
+      "assertionResults": [
+        {
+          "fullName": "recent DM list touchDm moves the peer to the top and keeps one entry per peer",
+          "status": "passed",
+          "duration": 4.218399999999974
+        },
+        {
+          "fullName": "recent DM list a known username and room id are not lost when an update lacks them",
+          "status": "passed",
+          "duration": 0.5718000000001666
+        },
+        {
+          "fullName": "recent DM list an unknown peer gets a placeholder name from its id",
+          "status": "passed",
+          "duration": 0.2624000000000706
+        },
+        {
+          "fullName": "recent DM list the list is stored per user",
+          "status": "passed",
+          "duration": 1.929700000000139
+        }
+      ]
+    },
+    {
+      "name": "client/src/state/SocketContext.test.jsx",
+      "assertionResults": [
+        {
+          "fullName": "SocketContext (CS-16, FR-004) signed out: no socket is created",
+          "status": "passed",
+          "duration": 23.80419999999981
+        },
+        {
+          "fullName": "SocketContext (CS-16, FR-004) signed in: one socket with the JWT in the handshake, tracking connection state",
+          "status": "passed",
+          "duration": 7.887200000000121
+        },
+        {
+          "fullName": "SocketContext (CS-16, FR-004) useSocket outside the provider is a programming error",
+          "status": "passed",
+          "duration": 10.65890000000013
+        }
+      ]
+    },
+    {
+      "name": "client/src/views/Dashboard.test.jsx",
+      "assertionResults": [
+        {
+          "fullName": "Dashboard DM list (CS-13) a DM from someone new appears in the list with their username and is remembered",
+          "status": "passed",
+          "duration": 97.58819999999992
+        },
+        {
+          "fullName": "Dashboard DM list (CS-13) the new-message form rejects a malformed id and your own id, then opens the chat",
+          "status": "passed",
+          "duration": 50.448700000000144
+        }
+      ]
+    }
+  ]
+}

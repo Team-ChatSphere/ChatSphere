@@ -33,6 +33,16 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testTimeout": 60000
+    "testTimeout": 60000,
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "json-summary",
+      "json",
+      "html"
+    ],
+    "coverageDirectory": "coverage"
   }
 }
