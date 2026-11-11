@@ -21,6 +21,15 @@ npm install
 npm run dev
 ```
 
+## Run with Docker
+
+```bash
+docker compose up --build     # client http://localhost:8080, server http://localhost:4000
+docker compose down -v         # stop and delete the data volume
+```
+
+Runs the server, the React client (nginx), MongoDB 6 and Redis 7. Set `JWT_SECRET` in your shell or a root `.env` for anything beyond a local demo.
+
 ## Tests
 
 ```bash

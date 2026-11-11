@@ -1,0 +1,52 @@
+# Full stack (SRS 6.4, SAD 2.5): docker compose up --build
+#   client  http://localhost:8080
+#   server  http://localhost:4000
+# Set JWT_SECRET in your shell or a root .env file for anything beyond a local demo.
+services:
+  mongo:
+    image: mongo:6
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  server:
+    build: ./server
+    environment:
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/chatsphere
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-local-demo-secret-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      CLIENT_ORIGIN: http://localhost:8080,http://localhost:5173
+    ports:
+      - "4000:4000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: http://localhost:4000
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+
+volumes:
+  mongo-data:
