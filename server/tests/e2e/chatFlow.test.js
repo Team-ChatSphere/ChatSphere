@@ -34,10 +34,30 @@ describe('auth on both channels (FR-004, SEC-004, TC-04)', () => {
     ['no token', undefined],
     ['an expired token', () => jwt.sign({ sub: 'x', username: 'x', exp: Math.floor(Date.now() / 1000) - 5 }, JWT_SECRET)],
     ['a token signed with another key', () => jwt.sign({ sub: 'x', username: 'x' }, 'not-the-key')],
+    ['a correctly signed token for a user that does not exist', () => jwt.sign({ sub: 'f'.repeat(24), username: 'ghost' }, JWT_SECRET)],
   ])('the WebSocket handshake is refused with %s', async (_label, makeToken) => {
     const token = typeof makeToken === 'function' ? makeToken() : makeToken;
 
     await expect(stack.socketFor(token)).rejects.toMatchObject({ message: 'AUTH_INVALID_TOKEN' });
+  });
+
+  test('REST refuses a correctly signed token for a user that does not exist', async () => {
+    const ghost = jwt.sign({ sub: 'f'.repeat(24), username: 'ghost' }, JWT_SECRET);
+
+    const res = await stack.api('GET', `/api/messages/${'a'.repeat(24)}`, { token: ghost });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toEqual({ code: 'AUTH_INVALID_TOKEN', message: 'User no longer exists' });
+  });
+
+  test('a token stops working on both channels once its user is deleted', async () => {
+    const User = require('../../src/models/User');
+    await User.deleteOne({ _id: alice.id });
+
+    const rest = await stack.api('GET', `/api/messages/${'a'.repeat(24)}`, { token: alice.token });
+
+    expect(rest.status).toBe(401);
+    await expect(stack.socketFor(alice.token)).rejects.toMatchObject({ message: 'AUTH_INVALID_TOKEN' });
   });
 
   test('a valid token connects and identifies the user', async () => {
