@@ -1,0 +1,65 @@
+// Wires every service into the REST API and the WebSocket Gateway (SAD 2.1–2.2,
+// docs/INTEGRATION.md §2). Used by index.js and by the end-to-end tests.
+const User = require('./models/User');
+const RoomMembership = require('./models/RoomMembership');
+const { createAuthService } = require('./services/auth/authService');
+const { createMessagingService } = require('./services/messaging/messagingService');
+const { getOrCreateDirectRoom } = require('./services/messaging/directRoom');
+const { createRoomService, isMember } = require('./services/rooms/roomService');
+const { createJwtAuth, createSocketJwtAuth } = require('./middleware/jwtAuth');
+const { createAuthRouter } = require('./routes/auth');
+const { createMessagesRouter } = require('./routes/messages');
+const { registerMessagingHandlers, userRoom } = require('./sockets/messagingHandlers');
+const { registerRoomHandlers, createRoomMessageHandler, socketRoom } = require('./sockets/roomHandlers');
+
+/**
+ * @param {object} options
+ * @param {string} options.jwtSecret
+ * @param {string|number} [options.jwtExpiresIn]
+ * @param {number} [options.bcryptRounds]
+ * @param {{ onConnect: Function, onDisconnect: Function }} [options.presence]  CS-22/CS-23
+ */
+function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence } = {}) {
+  const authService = createAuthService({ jwtSecret, jwtExpiresIn, bcryptRounds });
+  const roomService = createRoomService();
+  const messagingService = createMessagingService({
+    resolveDirectRoom: getOrCreateDirectRoom,
+    userExists: async (id) => Boolean(await User.exists({ _id: id })),
+    isMember: (userId, roomId) => isMember(userId, roomId),
+  });
+  const jwtAuth = createJwtAuth(authService);
+
+  function registerRoutes(app) {
+    app.use('/api/auth', createAuthRouter({ authService }));
+    app.use('/api/messages', jwtAuth, createMessagesRouter({ service: messagingService }));
+  }
+
+  function registerSockets(io) {
+    io.use(createSocketJwtAuth(authService));
+    const onRoomMessage = createRoomMessageHandler(io, { service: roomService });
+
+    io.on('connection', async (socket) => {
+      // Handlers first, synchronously, so no event sent right after connecting is missed.
+      socket.join(userRoom(socket.user.id));
+      registerRoomHandlers(io, socket, { service: roomService });
+      registerMessagingHandlers(io, socket, { service: messagingService, onRoomMessage });
+      if (presence) {
+        socket.on('disconnect', () => presence.onDisconnect(io, socket));
+      }
+
+      try {
+        // Rejoin the channels of every room this user is a member of (after a reconnect).
+        const memberships = await RoomMembership.find({ user_id: socket.user.id }).select('room_id').lean();
+        await Promise.all(memberships.map(({ room_id }) => socket.join(socketRoom(String(room_id)))));
+        if (presence) await presence.onConnect(io, socket);
+        socket.emit('session:ready', { userId: socket.user.id, username: socket.user.username });
+      } catch (err) {
+        console.error('connection setup failed', err);
+      }
+    });
+  }
+
+  return { authService, roomService, messagingService, jwtAuth, registerRoutes, registerSockets };
+}
+
+module.exports = { createGateway };
