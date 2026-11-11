@@ -6,11 +6,11 @@
 
 - **Automated end-to-end tests**: the real server (Express + Socket.IO + MongoDB) is started and driven by real Socket.IO / HTTP clients for 2–3 users (`server/tests/e2e/`).
 - **Service, route and model tests** against a real (in-memory) MongoDB; **client tests** with Testing Library.
-- **API tests**: Postman collection run with newman against a running server ([results](../postman/results/README.md)).
+- **API tests**: Postman collection run with newman against a running server: **15 requests, 34 assertions, 0 failed** ([results](../postman/results/README.md)).
 - **Performance**: load test for NFR-001/NFR-002: p95 delivery **16.2 ms** (target 300), p95 REST **66.1 ms** (target 1000) ([report](load-test.md)).
 - **Deployment**: `docker compose up --build` smoke test (all containers healthy; register, login, live DM, history, client served).
 
-## Result: 19/23 test cases passed, 4 not yet run
+## Result: 23/23 test cases passed
 
 | TC | Requirement(s) | Test case | Result | Evidence |
 | --- | --- | --- | --- | --- |
@@ -21,7 +21,7 @@
 | TC-05 | FR-008, NFR-001 | DM delivered to online recipient | ✅ PASS | 2 automated test(s); load test p95 delivery 16.2 ms (1000 DMs, 0 lost) |
 | TC-06 | FR-009 | DM to offline recipient | ✅ PASS | 2 automated test(s) |
 | TC-07 | FR-012, FR-014 | Create room and broadcast | ✅ PASS | 2 automated test(s) |
-| TC-08 | FR-021, SEC-002 | Non-admin admin action rejected | ⏳ NOT RUN | no automated test found yet |
+| TC-08 | FR-021, SEC-002 | Non-admin admin action rejected | ✅ PASS | 1 automated test(s) |
 | TC-09 | SEC-003 | Stored XSS | ✅ PASS | 3 automated test(s) |
 | TC-10 | FR-018 | Paginated history | ✅ PASS | 3 automated test(s) |
 | TC-11 | FR-003, SEC-006 | Wrong password / unknown user | ✅ PASS | 2 automated test(s) |
@@ -32,9 +32,9 @@
 | TC-16 | FR-001 (neg.) | Username differing only in case | ✅ PASS | 2 automated test(s) |
 | TC-17 | FR-013 | Join and leave a room | ✅ PASS | 3 automated test(s) |
 | TC-18 | FR-015 | Non-member cannot read or post | ✅ PASS | 2 automated test(s) |
-| TC-19 | FR-005, FR-006 | Presence online / offline | ⏳ NOT RUN | no automated test found yet |
-| TC-20 | FR-019, FR-020 | Admin promotes and removes | ⏳ NOT RUN | no automated test found yet |
-| TC-21 | FR-016 | Room keeps at least one admin | ⏳ NOT RUN | no automated test found yet |
+| TC-19 | FR-005, FR-006 | Presence online / offline | ✅ PASS | 3 automated test(s) |
+| TC-20 | FR-019, FR-020 | Admin promotes and removes | ✅ PASS | 3 automated test(s) |
+| TC-21 | FR-016 | Room keeps at least one admin | ✅ PASS | 1 automated test(s) |
 | TC-22 | NFR-002 | REST response time under load | ✅ PASS | Load test: p95 REST 66.1 ms over 500 requests ([load-test.md](load-test.md)); Postman timing assertions |
 | TC-23 | FR-004, SEC-004 | Token of a deleted user | ✅ PASS | 4 automated test(s) |
 
@@ -42,26 +42,26 @@
 
 <details><summary><b>TC-01</b>: Register with unique username and email (3)</summary>
 
+- ✅ `server/tests/routes/auth.test.js` › POST /api/auth/register 201 { userId }
 - ✅ `server/tests/services/authService.test.js` › register (FR-001, FR-002, SEC-001, TC-01, TC-02) creates the user and returns its id
 - ✅ `server/tests/services/authService.test.js` › register (FR-001, FR-002, SEC-001, TC-01, TC-02) stores only a bcrypt hash, never the plaintext password (SEC-001)
-- ✅ `server/tests/routes/auth.test.js` › POST /api/auth/register 201 { userId }
 
 </details>
 
 <details><summary><b>TC-02</b>: Register with a duplicate email (3)</summary>
 
+- ✅ `server/tests/routes/auth.test.js` › POST /api/auth/register 400 VALIDATION_FAILED for a duplicate email (TC-02)
 - ✅ `server/tests/services/authService.test.js` › register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects a duplicate username (any case) (TC-02)
 - ✅ `server/tests/services/authService.test.js` › register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects a duplicate email (any case) (TC-02)
-- ✅ `server/tests/routes/auth.test.js` › POST /api/auth/register 400 VALIDATION_FAILED for a duplicate email (TC-02)
 
 </details>
 
 <details><summary><b>TC-03</b>: Login with valid credentials (4)</summary>
 
+- ✅ `server/tests/routes/auth.test.js` › POST /api/auth/login 200 { token } for valid credentials (TC-03)
 - ✅ `server/tests/services/authService.test.js` › login (FR-003, TC-03) logs in with username and returns a signed JWT with sub + username
 - ✅ `server/tests/services/authService.test.js` › login (FR-003, TC-03) logs in with username in another case and returns a signed JWT with sub + username
 - ✅ `server/tests/services/authService.test.js` › login (FR-003, TC-03) logs in with email and returns a signed JWT with sub + username
-- ✅ `server/tests/routes/auth.test.js` › POST /api/auth/login 200 { token } for valid credentials (TC-03)
 
 </details>
 
@@ -94,6 +94,12 @@
 
 - ✅ `server/tests/services/roomService.test.js` › room lifecycle (CS-18, CS-19) creates a group and makes its creator the first admin
 - ✅ `server/tests/e2e/chatFlow.test.js` › rooms (FR-012 to FR-015, TC-07) Alice creates a room, Bob joins, both see each other’s messages live; outsiders can’t post
+
+</details>
+
+<details><summary><b>TC-08</b>: Non-admin admin action rejected (1)</summary>
+
+- ✅ `server/tests/services/roomService.test.js` › room lifecycle (CS-18, CS-19) non-admins cannot promote or remove members
 
 </details>
 
@@ -151,8 +157,8 @@
 
 <details><summary><b>TC-16</b>: Username differing only in case (2)</summary>
 
-- ✅ `server/tests/models/User.test.js` › User model (CS-04) usernames are unique ignoring case, enforced by the database index itself
 - ✅ `server/tests/services/authService.test.js` › register (FR-001, FR-002, SEC-001, TC-01, TC-02) two concurrent registrations differing only in case create exactly one account
+- ✅ `server/tests/models/User.test.js` › User model (CS-04) usernames are unique ignoring case, enforced by the database index itself
 
 </details>
 
@@ -168,6 +174,28 @@
 
 - ✅ `server/tests/services/roomService.test.js` › group messages (CS-20, CS-21) rejects a non-member before persisting a message
 - ✅ `server/tests/e2e/chatFlow.test.js` › rooms (FR-012 to FR-015, TC-07) Alice creates a room, Bob joins, both see each other’s messages live; outsiders can’t post
+
+</details>
+
+<details><summary><b>TC-19</b>: Presence online / offline (3)</summary>
+
+- ✅ `server/tests/e2e/presence.test.js` › presence is broadcast to DM contacts and remains online until the last socket disconnects
+- ✅ `server/tests/server.test.js` › HTTP + Socket.IO server (CS-01) detects lost sockets within the five-second presence window
+- ✅ `client/src/components/RoomsPanel.test.jsx` › RoomsPanel member and unread controls (CS-41) shows member roles and presence, and exposes admin actions only for admins
+
+</details>
+
+<details><summary><b>TC-20</b>: Admin promotes and removes (3)</summary>
+
+- ✅ `server/tests/services/roomService.test.js` › room lifecycle (CS-18, CS-19) an admin can promote a room member and remove a room member
+- ✅ `server/tests/services/roomService.test.js` › room lifecycle (CS-18, CS-19) non-admins cannot promote or remove members
+- ✅ `server/tests/sockets/roomHandlers.test.js` › room socket handlers (CS-18, CS-19) room:promote delegates authorization and broadcasts the new role
+
+</details>
+
+<details><summary><b>TC-21</b>: Room keeps at least one admin (1)</summary>
+
+- ✅ `server/tests/services/roomService.test.js` › room lifecycle (CS-18, CS-19) the last admin cannot leave or be removed
 
 </details>
 

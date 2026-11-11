@@ -78,6 +78,15 @@ Newest first; `nextPage` is `null` on the last page. `401 AUTH_INVALID_TOKEN` ·
 
 `content` is stored and returned **HTML-escaped** (`&amp; &lt; &gt; &quot; &#39;`, SEC-003). Clients decode those five entities and render the result as plain text.
 
+### `GET /api/rooms/:roomId/messages?page=&pageSize=`, FR-018, FR-015
+Bearer token. Room history; same paging and response as `GET /api/messages/:conversationId`. `403 AUTH_FORBIDDEN` for non-members.
+
+### `GET /api/rooms/:roomId/members` **(added)**, FR-019/020 UI
+Bearer token, members only. → `200 { "members": [ { "userId", "username", "role": "admin" | "member", "status": "online" | "offline" } ] }`
+
+### `GET /api/users?search=` and `GET /api/rooms?search=` **(added)**, CS-33
+Bearer token. Search by name (2–50 characters; shorter returns an empty list). → `200 { "users": [ { "userId", "username", "status" } ] }` / `200 { "rooms": [ { "roomId", "name" } ] }` (group rooms only; DM rooms are never listed). `400 VALIDATION_FAILED` if longer than 50 characters.
+
 ---
 
 ## Socket.IO events
@@ -125,7 +134,18 @@ Non-participants are ignored. Clients send one `typing:start` per burst and `typ
 
 On connect the server re-joins the socket to every room the user is a member of.
 
-Room administration (`room:promote`, `room:removeMember`, FR-019 to FR-021), user/room search (CS-33), room history route (CS-40) and presence (`presence:update`, FR-005/006) are documented here as they land.
+### Room administration (FR-019 to FR-021, SEC-002)
+
+| Client → server | Payload | Server → client |
+| --- | --- | --- |
+| `room:promote` | `{ roomId, userId }` | `room:memberPromoted` to the room's members; ack |
+| `room:removeMember` | `{ roomId, userId }` | `room:memberRemoved { roomId, userId }` to the members and to the removed user's sockets (which leave the channel); ack |
+
+Only admins of that room may do either; anyone else gets `AUTH_FORBIDDEN` (checked **before** looking the room up, so a non-member can't tell whether a room exists) and the attempt is security-logged (`room_admin_forbidden`, SEC-006). A room always keeps at least one admin: the last admin can't leave or be removed (`VALIDATION_FAILED`, FR-016).
+
+### Presence (FR-005, FR-006)
+
+`presence:update { userId, status: "online" | "offline" }` is sent to the user's DM contacts when their **first** socket connects and when their **last** socket disconnects (multiple tabs count once). Sockets are tracked per user in Redis. The Socket.IO heartbeat (`pingInterval` 1 s, `pingTimeout` 3 s) detects a dropped connection within 5 s. If Redis is unavailable, presence is paused and messaging keeps working.
 
 ---
 
@@ -134,8 +154,8 @@ Room administration (`room:promote`, `room:removeMember`, FR-019 to FR-021), use
 | Requirement | Where |
 | --- | --- |
 | SEC-001 bcrypt only | `services/auth/authService.js` |
-| SEC-002 RBAC on room admin | Room service (CS-38) |
+| SEC-002 RBAC on room admin | `services/rooms/roomService.js` (requireAdmin) |
 | SEC-003 stored XSS | `utils/sanitize.js` (server) · `utils/text.js` + React text rendering (client) |
 | SEC-004 reject bad tokens | `middleware/jwtAuth.js` (REST + handshake) |
 | SEC-005 rate limit | `sockets/rateLimit.js` |
-| SEC-006 security log | `utils/securityLog.js` (failed logins, rate limiting; room-admin denials via CS-26) |
+| SEC-006 security log | `utils/securityLog.js`: failed logins, rate limiting, room-admin denials |
