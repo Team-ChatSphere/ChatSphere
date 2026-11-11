@@ -8,7 +8,9 @@
     "dev": "node --watch src/index.js",
     "lint": "eslint .",
     "test": "jest",
-    "loadtest": "node scripts/loadTest.js"
+    "loadtest": "node scripts/loadTest.js",
+    "postman": "node scripts/postmanRun.js",
+    "seed:dm": "node scripts/seedDm.js"
   },
   "engines": {
     "node": ">=20"

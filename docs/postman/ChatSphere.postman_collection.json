@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "ChatSphere API v1",
-    "description": "REST API from SAD 3.2.1 (Test Plan 8). Run \"Auth\" first: Register creates a fresh user on every run and Login stores {{token}}. Set {{conversationId}} to a DM room id the user belongs to before running \"DM history\".",
+    "name": "ChatSphere API (final)",
+    "description": "REST API from SAD 3.2.1 (Test Plan §8, CS-14 / CS-35). Socket.IO events are documented in docs/API.md.\n\nRun everything automatically (starts a server, seeds a DM, runs this collection, saves results): `cd server && npm run postman`.\n\nManual run: start the server, run `npm run seed:dm` in server/ and copy the printed conversationId / dmUser / dmPassword into the collection variables, then run the collection.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -41,15 +41,66 @@
     },
     {
       "key": "conversationId",
+      "value": "",
+      "description": "A DM conversation that dmUser is in (from npm run seed:dm)"
+    },
+    {
+      "key": "dmUser",
+      "value": ""
+    },
+    {
+      "key": "dmPassword",
+      "value": "Passw0rd!"
+    },
+    {
+      "key": "dmToken",
       "value": ""
     }
   ],
   "item": [
     {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {
-          "name": "Register (FR-001, FR-002)",
+          "name": "Register (FR-001, FR-002, TC-01)",
           "event": [
             {
               "listen": "prerequest",
@@ -59,10 +110,10 @@
                   "// Fresh identity every run, so repeated runs never hit an already-registered email.",
                   "// The duplicate-email and short-password requests below reuse it on purpose.",
                   "const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);",
-                  "pm.collectionVariables.set(\"username\", \"pm_\" + suffix);",
-                  "pm.collectionVariables.set(\"email\", \"pm_\" + suffix + \"@example.com\");",
-                  "pm.collectionVariables.unset(\"token\");",
-                  "pm.collectionVariables.unset(\"userId\");"
+                  "pm.collectionVariables.set('username', 'pm_' + suffix);",
+                  "pm.collectionVariables.set('email', 'pm_' + suffix + '@example.com');",
+                  "pm.collectionVariables.unset('token');",
+                  "pm.collectionVariables.unset('userId');"
                 ]
               }
             },
@@ -72,8 +123,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 201', () => pm.response.to.have.status(201));",
-                  "pm.test('returns userId', () => pm.expect(pm.response.json().userId).to.be.a('string'));",
-                  "pm.collectionVariables.set('userId', pm.response.json().userId);"
+                  "pm.test('returns userId', () => pm.expect(pm.response.json().userId).to.match(/^[0-9a-f]{24}$/));",
+                  "pm.collectionVariables.set('userId', pm.response.json().userId);",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
                 ]
               }
             }
@@ -215,7 +267,8 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('returns a JWT', () => pm.expect(pm.response.json().token.split('.')).to.have.length(3));",
-                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                  "pm.collectionVariables.set('token', pm.response.json().token);",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
                 ]
               }
             }
@@ -254,14 +307,15 @@
           }
         },
         {
-          "name": "Login with wrong password",
+          "name": "Login with wrong password (401)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 401', () => pm.response.to.have.status(401));"
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
                 ]
               }
             }
@@ -298,12 +352,106 @@
               ]
             }
           }
+        },
+        {
+          "name": "Login with unknown user gives the same 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('same message as a wrong password (no account enumeration)', () => pm.expect(pm.response.json().error.message).to.eql('Invalid username/email or password'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"no_such_user_xyz\",\n  \"password\": \"whatever123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
         }
       ]
     },
     {
       "name": "DM history",
       "item": [
+        {
+          "name": "Login as the DM participant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('dmToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{dmUser}}\",\n  \"password\": \"{{dmPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
         {
           "name": "Get DM history (FR-018, TC-10)",
           "event": [
@@ -314,8 +462,9 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('has messages[] and nextPage', () => { pm.expect(body.messages).to.be.an('array'); pm.expect(body).to.have.property('nextPage'); });",
-                  "pm.test('newest first', () => { const t = body.messages.map((m) => new Date(m.timestamp).getTime()); pm.expect(t).to.eql([...t].sort((a, b) => b - a)); });"
+                  "pm.test('has messages[] and nextPage', () => { pm.expect(body.messages).to.be.an('array').that.is.not.empty; pm.expect(body).to.have.property('nextPage'); });",
+                  "pm.test('newest first', () => { const t = body.messages.map((m) => new Date(m.timestamp).getTime()); pm.expect(t).to.eql([...t].sort((a, b) => b - a)); });",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
                 ]
               }
             }
@@ -323,6 +472,16 @@
           "request": {
             "method": "GET",
             "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dmToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "url": {
               "raw": "{{baseUrl}}/api/messages/{{conversationId}}?page=1&pageSize=20",
               "host": [
@@ -347,7 +506,57 @@
           }
         },
         {
-          "name": "Get DM history without token (SEC-004)",
+          "name": "Get DM history, page size 1 has a next page",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('one message and nextPage 2', () => { const b = pm.response.json(); pm.expect(b.messages).to.have.length(1); pm.expect(b.nextPage).to.eql(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dmToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{conversationId}}?page=1&pageSize=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get DM history without token (SEC-004, TC-04)",
           "event": [
             {
               "listen": "test",
@@ -363,6 +572,9 @@
           "request": {
             "method": "GET",
             "header": [],
+            "auth": {
+              "type": "noauth"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/messages/{{conversationId}}",
               "host": [
@@ -373,9 +585,46 @@
                 "messages",
                 "{{conversationId}}"
               ]
-            },
+            }
+          }
+        },
+        {
+          "name": "Get DM history with a tampered token (SEC-004)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dmToken}}x",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{conversationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ]
             }
           }
         },
@@ -396,15 +645,25 @@
           "request": {
             "method": "GET",
             "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/messages/000000000000000000000000",
+              "raw": "{{baseUrl}}/api/messages/{{conversationId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "messages",
-                "000000000000000000000000"
+                "{{conversationId}}"
               ]
             }
           }
@@ -426,6 +685,16 @@
           "request": {
             "method": "GET",
             "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dmToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "url": {
               "raw": "{{baseUrl}}/api/messages/{{conversationId}}?pageSize=zero",
               "host": [
@@ -441,6 +710,46 @@
                   "key": "pageSize",
                   "value": "zero"
                 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get DM history with a malformed id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dmToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/not-an-id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "messages",
+                "not-an-id"
               ]
             }
           }
