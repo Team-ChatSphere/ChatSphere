@@ -10,6 +10,8 @@ const { createRoomService, isMember } = require('./services/rooms/roomService');
 const { createJwtAuth, createSocketJwtAuth } = require('./middleware/jwtAuth');
 const { createAuthRouter } = require('./routes/auth');
 const { createMessagesRouter } = require('./routes/messages');
+const { createRoomsRouter } = require('./routes/rooms');
+const { createUsersRouter } = require('./routes/users');
 const { registerMessagingHandlers, deliverPending, userRoom } = require('./sockets/messagingHandlers');
 const { registerRoomHandlers, createRoomMessageHandler, socketRoom } = require('./sockets/roomHandlers');
 const { rateLimitMiddleware } = require('./sockets/rateLimit');
@@ -43,6 +45,8 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLi
   function registerRoutes(app) {
     app.use('/api/auth', createAuthRouter({ authService }));
     app.use('/api/messages', jwtAuth, createMessagesRouter({ service: messagingService }));
+    app.use('/api/rooms', jwtAuth, createRoomsRouter({ service: roomService, messagingService, RoomModel: Room }));
+    app.use('/api/users', jwtAuth, createUsersRouter({ UserModel: User }));
   }
 
   function registerSockets(io) {
@@ -56,14 +60,22 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLi
       registerRoomHandlers(io, socket, { service: roomService });
       registerMessagingHandlers(io, socket, { service: messagingService, onRoomMessage });
       if (presence) {
-        socket.on('disconnect', () => presence.onDisconnect(io, socket));
+        socket.on('disconnect', () => {
+          presence.onDisconnect(io, socket).catch((err) => console.error('presence disconnect failed', err));
+        });
       }
 
       try {
         // Rejoin the channels of every room this user is a member of (after a reconnect).
         const memberships = await RoomMembership.find({ user_id: socket.user.id }).select('room_id').lean();
         await Promise.all(memberships.map(({ room_id }) => socket.join(socketRoom(String(room_id)))));
-        if (presence) await presence.onConnect(io, socket);
+        if (presence) {
+          try {
+            await presence.onConnect(io, socket);
+          } catch (err) {
+            console.error('presence connect failed', err);
+          }
+        }
         await deliverPending(io, socket, { service: messagingService, usernamesFor });
         socket.emit('session:ready', { userId: socket.user.id, username: socket.user.username });
       } catch (err) {

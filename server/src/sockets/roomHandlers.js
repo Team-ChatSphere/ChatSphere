@@ -74,6 +74,47 @@ function registerRoomHandlers(io, socket, { service }) {
       replyError(socket, ack, err, 'room:leave');
     }
   });
+
+  socket.on('room:promote', async (payload, ack) => {
+    try {
+      const result = await service.promoteMember({
+        actorUserId: socket.user.id,
+        roomId: payload?.roomId,
+        userId: payload?.userId,
+      });
+      const event = { roomId: String(result.room._id), userId: String(payload.userId), role: 'admin' };
+      io.to(socketRoom(event.roomId)).emit('room:memberPromoted', event);
+      if (typeof ack === 'function') ack({ ok: true, ...event });
+    } catch (err) {
+      replyError(socket, ack, err, 'room:promote');
+    }
+  });
+
+  socket.on('room:removeMember', async (payload, ack) => {
+    try {
+      const result = await service.removeMember({
+        actorUserId: socket.user.id,
+        roomId: payload?.roomId,
+        userId: payload?.userId,
+      });
+      const id = String(result.room._id);
+      const removedUserId = String(payload.userId);
+      if (typeof io.in === 'function') {
+        const removedSockets = await io.in(userRoom(removedUserId)).fetchSockets();
+        await Promise.all(removedSockets.map(async (removedSocket) => {
+          await removedSocket.leave(socketRoom(id));
+          removedSocket.emit('room:memberRemoved', { roomId: id, userId: removedUserId });
+        }));
+      } else if (removedUserId === socket.user.id) {
+        socket.leave(socketRoom(id));
+      }
+      const event = { roomId: id, userId: removedUserId };
+      io.to(socketRoom(id)).emit('room:memberRemoved', event);
+      if (typeof ack === 'function') ack({ ok: true, ...event });
+    } catch (err) {
+      replyError(socket, ack, err, 'room:removeMember');
+    }
+  });
 }
 
 function createRoomMessageHandler(io, { service }) {

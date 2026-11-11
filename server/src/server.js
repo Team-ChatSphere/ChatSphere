@@ -14,7 +14,13 @@ function createServer({ clientOrigins, registerRoutes, registerSockets } = {}) {
   const app = createApp({ clientOrigins, registerRoutes });
   const httpServer = http.createServer(app);
   // WebSocket transport is required; polling is only the Socket.IO fallback (SRS 2.4).
-  const io = new Server(httpServer, { cors: { origin: clientOrigins } });
+  // Presence must reflect a lost client within five seconds (Test Plan TC-19).
+  // Worst-case detection is one ping interval plus the ping timeout: 1s + 3s.
+  const io = new Server(httpServer, {
+    cors: { origin: clientOrigins },
+    pingInterval: 1000,
+    pingTimeout: 3000,
+  });
   if (registerSockets) registerSockets(io);
   return { app, httpServer, io };
 }

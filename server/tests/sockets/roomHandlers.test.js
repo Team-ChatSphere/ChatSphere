@@ -92,6 +92,54 @@ describe('room socket handlers (CS-18, CS-19)', () => {
     expect(otherTab.leave).toHaveBeenCalledWith(`room:${ROOM}`);
     expect(emit).toHaveBeenCalledWith('room:memberLeft', { roomId: ROOM, userId: ALICE });
   });
+
+  test('room:promote delegates authorization and broadcasts the new role', async () => {
+    const { io, to, emit } = mockIo();
+    const socket = mockSocket();
+    const service = { promoteMember: jest.fn().mockResolvedValue({ room: { _id: ROOM } }) };
+    registerRoomHandlers(io, socket, { service });
+    const ack = jest.fn();
+
+    await listener(socket, 'room:promote')({ roomId: ROOM, userId: 'b'.repeat(24) }, ack);
+
+    expect(service.promoteMember).toHaveBeenCalledWith({ actorUserId: ALICE, roomId: ROOM, userId: 'b'.repeat(24) });
+    expect(to).toHaveBeenCalledWith(`room:${ROOM}`);
+    expect(emit).toHaveBeenCalledWith('room:memberPromoted', { roomId: ROOM, userId: 'b'.repeat(24), role: 'admin' });
+    expect(ack).toHaveBeenCalledWith({ ok: true, roomId: ROOM, userId: 'b'.repeat(24), role: 'admin' });
+  });
+
+  test('room:removeMember evicts the target user from every socket in the room', async () => {
+    const { io, to, inRoom, emit } = mockIo();
+    const socket = mockSocket();
+    const targetId = 'b'.repeat(24);
+    const removedSocket = { leave: jest.fn(), emit: jest.fn() };
+    inRoom.mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([removedSocket]) });
+    const service = { removeMember: jest.fn().mockResolvedValue({ room: { _id: ROOM }, removed: true }) };
+    registerRoomHandlers(io, socket, { service });
+    const ack = jest.fn();
+
+    await listener(socket, 'room:removeMember')({ roomId: ROOM, userId: targetId }, ack);
+
+    expect(service.removeMember).toHaveBeenCalledWith({ actorUserId: ALICE, roomId: ROOM, userId: targetId });
+    expect(inRoom).toHaveBeenCalledWith(`user:${targetId}`);
+    expect(removedSocket.leave).toHaveBeenCalledWith(`room:${ROOM}`);
+    expect(removedSocket.emit).toHaveBeenCalledWith('room:memberRemoved', { roomId: ROOM, userId: targetId });
+    expect(to).toHaveBeenCalledWith(`room:${ROOM}`);
+    expect(emit).toHaveBeenCalledWith('room:memberRemoved', { roomId: ROOM, userId: targetId });
+    expect(ack).toHaveBeenCalledWith({ ok: true, roomId: ROOM, userId: targetId });
+  });
+
+  test('a forbidden admin action returns AUTH_FORBIDDEN through the ack', async () => {
+    const { io } = mockIo();
+    const socket = mockSocket();
+    const service = { promoteMember: jest.fn().mockRejectedValue(new AppError('AUTH_FORBIDDEN', 'Only admins')) };
+    registerRoomHandlers(io, socket, { service });
+    const ack = jest.fn();
+
+    await listener(socket, 'room:promote')({ roomId: ROOM, userId: 'b'.repeat(24) }, ack);
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: { code: 'AUTH_FORBIDDEN', message: 'Only admins' } });
+  });
 });
 
 describe('onRoomMessage (CS-20, CS-21)', () => {

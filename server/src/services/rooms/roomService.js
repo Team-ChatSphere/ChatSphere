@@ -3,6 +3,7 @@ const RoomMembership = require('../../models/RoomMembership');
 const Message = require('../../models/Message');
 const { AppError } = require('../../utils/errors');
 const { cleanContent } = require('../messaging/messagingService');
+const { securityLog } = require('../../utils/securityLog');
 
 const OBJECT_ID = /^[0-9a-f]{24}$/i;
 const DIRECT_ROOM_NAME = /^[0-9a-f]{24}:[0-9a-f]{24}$/i;
@@ -39,7 +40,48 @@ function createRoomService({
   RoomModel = Room,
   RoomMembershipModel = RoomMembership,
   MessageModel = Message,
+  UserModel = null,
 } = {}) {
+  let ResolvedUserModel = UserModel;
+  if (!ResolvedUserModel) {
+    try {
+      ResolvedUserModel = require('../../models/User');
+    } catch {
+      // The room service can still be tested on branches before the auth model lands.
+    }
+  }
+  const roomLocks = new Map();
+
+  async function withRoomLock(roomId, operation) {
+    const key = String(roomId);
+    const previous = roomLocks.get(key) || Promise.resolve();
+    let release;
+    const current = new Promise((resolve) => { release = resolve; });
+    roomLocks.set(key, current);
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+      if (roomLocks.get(key) === current) roomLocks.delete(key);
+    }
+  }
+  async function requireGroupRoom(roomId) {
+    const room = await RoomModel.findById(roomId);
+    if (!room) throw new AppError('NOT_FOUND', 'Room not found');
+    if (room.type !== 'group') throw new AppError('VALIDATION_FAILED', 'This action only applies to group rooms');
+    return room;
+  }
+
+  async function requireAdmin(roomId, userId, action) {
+    const membership = await RoomMembershipModel.findOne({ room_id: roomId, user_id: userId });
+    if (!membership || membership.role !== 'admin') {
+      securityLog('room_admin_forbidden', { userId: String(userId), roomId: String(roomId), action });
+      throw new AppError('AUTH_FORBIDDEN', 'Only room admins can perform this action');
+    }
+    return membership;
+  }
+
   async function createRoom({ userId, name }) {
     validateId(userId, 'userId');
     const normalizedName = validateRoomName(name);
@@ -100,8 +142,74 @@ function createRoomService({
     const room = await RoomModel.findById(roomId);
     if (!room) throw new AppError('NOT_FOUND', 'Room not found');
     if (room.type !== 'group') throw new AppError('VALIDATION_FAILED', 'Direct rooms cannot be left');
-    const result = await RoomMembershipModel.deleteOne({ room_id: roomId, user_id: userId });
-    return { room, left: result.deletedCount > 0 };
+    return withRoomLock(roomId, async () => {
+      const membership = await RoomMembershipModel.findOne({ room_id: roomId, user_id: userId });
+      if (!membership) return { room, left: false };
+      if (membership.role === 'admin') {
+        const admins = await RoomMembershipModel.countDocuments({ room_id: roomId, role: 'admin' });
+        if (admins <= 1) throw new AppError('VALIDATION_FAILED', 'A room must keep at least one admin');
+      }
+      const result = await RoomMembershipModel.deleteOne({ room_id: roomId, user_id: userId });
+      return { room, left: result.deletedCount > 0 };
+    });
+  }
+
+  async function promoteMember({ actorUserId, roomId, userId }) {
+    validateId(actorUserId, 'actorUserId');
+    validateId(roomId, 'roomId');
+    validateId(userId, 'userId');
+    return withRoomLock(roomId, async () => {
+      const room = await requireGroupRoom(roomId);
+      await requireAdmin(roomId, actorUserId, 'promote');
+      const membership = await RoomMembershipModel.findOne({ room_id: roomId, user_id: userId });
+      if (!membership) throw new AppError('NOT_FOUND', 'Room member not found');
+      if (membership.role !== 'admin') {
+        membership.role = 'admin';
+        await membership.save();
+      }
+      return { room, membership, promoted: true };
+    });
+  }
+
+  async function removeMember({ actorUserId, roomId, userId }) {
+    validateId(actorUserId, 'actorUserId');
+    validateId(roomId, 'roomId');
+    validateId(userId, 'userId');
+    return withRoomLock(roomId, async () => {
+      const room = await requireGroupRoom(roomId);
+      await requireAdmin(roomId, actorUserId, 'remove');
+      const membership = await RoomMembershipModel.findOne({ room_id: roomId, user_id: userId });
+      if (!membership) throw new AppError('NOT_FOUND', 'Room member not found');
+      if (membership.role === 'admin') {
+        const admins = await RoomMembershipModel.countDocuments({ room_id: roomId, role: 'admin' });
+        if (admins <= 1) throw new AppError('VALIDATION_FAILED', 'A room must keep at least one admin');
+      }
+      await RoomMembershipModel.deleteOne({ room_id: roomId, user_id: userId });
+      return { room, removedUserId: userId, removed: true };
+    });
+  }
+
+  async function listMembers({ userId, roomId }) {
+    validateId(userId, 'userId');
+    validateId(roomId, 'roomId');
+    await requireGroupRoom(roomId);
+    if (!(await isMember(userId, roomId, RoomMembershipModel))) {
+      throw new AppError('AUTH_FORBIDDEN', 'You are not a member of this room');
+    }
+    const memberships = await RoomMembershipModel.find({ room_id: roomId }).lean();
+    const users = ResolvedUserModel
+      ? await ResolvedUserModel.find({ _id: { $in: memberships.map((membership) => membership.user_id) } }).select('username status').lean()
+      : [];
+    const usersById = new Map(users.map((user) => [String(user._id), user]));
+    return memberships.map((membership) => {
+      const member = usersById.get(String(membership.user_id));
+      return {
+        userId: String(membership.user_id),
+        username: member?.username || 'Unknown member',
+        role: membership.role,
+        status: member?.status || 'offline',
+      };
+    });
   }
 
   async function sendRoomMessage({ userId, roomId, content, idempotencyKey }) {
@@ -148,7 +256,7 @@ function createRoomService({
     }
   }
 
-  return { createRoom, joinRoom, restoreRoom, leaveRoom, sendRoomMessage };
+  return { createRoom, joinRoom, restoreRoom, leaveRoom, promoteMember, removeMember, listMembers, sendRoomMessage };
 }
 
 module.exports = { createRoomService, validateRoomName, DIRECT_ROOM_NAME, isMember };
