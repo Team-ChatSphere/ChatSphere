@@ -66,11 +66,14 @@ describe('room lifecycle (CS-18, CS-19)', () => {
 
   test('a group member can leave and membership is removed', async () => {
     const { room } = await service.createRoom({ userId: creatorId, name: 'team' });
+    const memberId = newId();
+    await service.joinRoom({ userId: memberId, roomId: String(room._id) });
 
-    const result = await service.leaveRoom({ userId: creatorId, roomId: String(room._id) });
+    const result = await service.leaveRoom({ userId: memberId, roomId: String(room._id) });
 
     expect(result.left).toBe(true);
-    expect(await RoomMembership.exists({ room_id: room._id, user_id: creatorId })).toBeNull();
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: memberId })).toBeNull();
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: creatorId })).not.toBeNull();
   });
 
   test('an admin can promote a room member and remove a room member', async () => {

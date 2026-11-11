@@ -268,7 +268,9 @@ export default function RoomsPanel({ joinRoomSelection = null, onRoomSelectionHa
   const joinAndOpenRoom = useCallback(async (id, knownName = '') => {
     const result = await acknowledge(socket, 'room:join', { roomId: id });
     const room = { roomId: result.roomId, name: knownName || `Room ${result.roomId.slice(0, 6)}` };
-    setRooms((current) => current.some((item) => item.roomId === room.roomId) ? current : [...current, room]);
+    setRooms((current) => current.some((item) => item.roomId === room.roomId)
+      ? current.map((item) => item.roomId === room.roomId ? { ...item, name: room.name } : item)
+      : [...current, room]);
     openRoom(room.roomId);
   }, [openRoom, socket]);
 
