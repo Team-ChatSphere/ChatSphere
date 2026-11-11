@@ -12,6 +12,7 @@ const { createAuthRouter } = require('./routes/auth');
 const { createMessagesRouter } = require('./routes/messages');
 const { registerMessagingHandlers, deliverPending, userRoom } = require('./sockets/messagingHandlers');
 const { registerRoomHandlers, createRoomMessageHandler, socketRoom } = require('./sockets/roomHandlers');
+const { rateLimitMiddleware } = require('./sockets/rateLimit');
 
 /**
  * @param {object} options
@@ -19,8 +20,9 @@ const { registerRoomHandlers, createRoomMessageHandler, socketRoom } = require('
  * @param {string|number} [options.jwtExpiresIn]
  * @param {number} [options.bcryptRounds]
  * @param {{ onConnect: Function, onDisconnect: Function }} [options.presence]  CS-22/CS-23
+ * @param {object} [options.rateLimit]  { capacity, refillPerSec } for message:send (SEC-005)
  */
-function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence } = {}) {
+function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLimit } = {}) {
   const authService = createAuthService({ jwtSecret, jwtExpiresIn, bcryptRounds });
   const roomService = createRoomService();
   const messagingService = createMessagingService({
@@ -49,6 +51,7 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence } = {})
 
     io.on('connection', async (socket) => {
       // Handlers first, synchronously, so no event sent right after connecting is missed.
+      socket.use(rateLimitMiddleware(socket, rateLimit));
       socket.join(userRoom(socket.user.id));
       registerRoomHandlers(io, socket, { service: roomService });
       registerMessagingHandlers(io, socket, { service: messagingService, onRoomMessage });
