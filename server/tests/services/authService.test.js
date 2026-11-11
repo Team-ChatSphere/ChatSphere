@@ -39,6 +39,20 @@ describe('register (FR-001, FR-002, SEC-001, TC-01, TC-02)', () => {
     expect(await User.countDocuments()).toBe(1);
   });
 
+  test('two concurrent registrations differing only in case create exactly one account', async () => {
+    const results = await Promise.allSettled([
+      auth.register({ ...alice, username: 'Alice', email: 'a1@example.com' }),
+      auth.register({ ...alice, username: 'alice', email: 'a2@example.com' }),
+      auth.register({ ...alice, username: 'ALICE', email: 'a3@example.com' }),
+    ]);
+
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    for (const r of results.filter((x) => x.status === 'rejected')) {
+      expect(r.reason).toMatchObject({ code: 'VALIDATION_FAILED' });
+    }
+    expect(await User.countDocuments()).toBe(1);
+  });
+
   test.each([
     ['short password', { password: 'short' }],
     ['password over 72 chars', { password: 'x'.repeat(73) }],
