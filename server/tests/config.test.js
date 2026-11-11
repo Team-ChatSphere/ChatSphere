@@ -1,6 +1,6 @@
 const { loadConfig } = require('../src/config');
 
-const ENV_KEYS = ['PORT', 'MONGO_URI', 'REDIS_URL', 'JWT_SECRET', 'CLIENT_ORIGIN'];
+const ENV_KEYS = ['PORT', 'MONGO_URI', 'REDIS_URL', 'JWT_SECRET', 'JWT_EXPIRES_IN', 'CLIENT_ORIGIN'];
 let saved;
 
 beforeEach(() => {
@@ -22,6 +22,7 @@ describe('config from environment (SRS 6.4)', () => {
       mongoUri: 'mongodb://db/chat',
       redisUrl: 'redis://localhost:6379',
       jwtSecret: 's3cret',
+      jwtExpiresIn: '12h',
       clientOrigins: ['http://a.test', 'http://b.test'],
     });
   });

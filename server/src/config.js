@@ -14,6 +14,7 @@ function loadConfig() {
     mongoUri: required('MONGO_URI'),
     redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
     jwtSecret: required('JWT_SECRET'),
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '12h',
     // Comma-separated list of browser origins allowed to call the API / open sockets.
     clientOrigins: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',').map((o) => o.trim()),
   };
