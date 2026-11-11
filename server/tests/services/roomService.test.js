@@ -109,6 +109,18 @@ describe('room lifecycle (CS-18, CS-19)', () => {
     securityLog.mockRestore();
   });
 
+  test('admin actions do not reveal whether an unjoined room id exists', async () => {
+    const securityLog = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const actorUserId = newId();
+    const roomId = newId();
+    const targetUserId = newId();
+
+    await expectCode(service.promoteMember({ actorUserId, roomId, userId: targetUserId }), 'AUTH_FORBIDDEN');
+    await expectCode(service.removeMember({ actorUserId, roomId, userId: targetUserId }), 'AUTH_FORBIDDEN');
+
+    securityLog.mockRestore();
+  });
+
   test('the last admin cannot leave or be removed', async () => {
     const { room } = await service.createRoom({ userId: creatorId, name: 'last admin team' });
     const memberId = newId();

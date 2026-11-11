@@ -159,8 +159,8 @@ function createRoomService({
     validateId(roomId, 'roomId');
     validateId(userId, 'userId');
     return withRoomLock(roomId, async () => {
-      const room = await requireGroupRoom(roomId);
       await requireAdmin(roomId, actorUserId, 'promote');
+      const room = await requireGroupRoom(roomId);
       const membership = await RoomMembershipModel.findOne({ room_id: roomId, user_id: userId });
       if (!membership) throw new AppError('NOT_FOUND', 'Room member not found');
       if (membership.role !== 'admin') {
@@ -176,8 +176,8 @@ function createRoomService({
     validateId(roomId, 'roomId');
     validateId(userId, 'userId');
     return withRoomLock(roomId, async () => {
-      const room = await requireGroupRoom(roomId);
       await requireAdmin(roomId, actorUserId, 'remove');
+      const room = await requireGroupRoom(roomId);
       const membership = await RoomMembershipModel.findOne({ room_id: roomId, user_id: userId });
       if (!membership) throw new AppError('NOT_FOUND', 'Room member not found');
       if (membership.role === 'admin') {
