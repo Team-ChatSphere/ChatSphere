@@ -66,11 +66,98 @@ describe('room lifecycle (CS-18, CS-19)', () => {
 
   test('a group member can leave and membership is removed', async () => {
     const { room } = await service.createRoom({ userId: creatorId, name: 'team' });
+    const memberId = newId();
+    await service.joinRoom({ userId: memberId, roomId: String(room._id) });
 
-    const result = await service.leaveRoom({ userId: creatorId, roomId: String(room._id) });
+    const result = await service.leaveRoom({ userId: memberId, roomId: String(room._id) });
 
     expect(result.left).toBe(true);
-    expect(await RoomMembership.exists({ room_id: room._id, user_id: creatorId })).toBeNull();
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: memberId })).toBeNull();
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: creatorId })).not.toBeNull();
+  });
+
+  test('an admin can promote a room member and remove a room member', async () => {
+    const { room } = await service.createRoom({ userId: creatorId, name: 'admin team' });
+    const memberId = newId();
+    await service.joinRoom({ userId: memberId, roomId: String(room._id) });
+
+    const promoted = await service.promoteMember({ actorUserId: creatorId, roomId: String(room._id), userId: memberId });
+    expect(promoted.membership.role).toBe('admin');
+
+    const removed = await service.removeMember({ actorUserId: creatorId, roomId: String(room._id), userId: memberId });
+    expect(removed).toMatchObject({ removed: true, removedUserId: memberId });
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: memberId })).toBeNull();
+  });
+
+  test('non-admins cannot promote or remove members', async () => {
+    const { room } = await service.createRoom({ userId: creatorId, name: 'private admin team' });
+    const memberId = newId();
+    const targetId = newId();
+    await service.joinRoom({ userId: memberId, roomId: String(room._id) });
+    await service.joinRoom({ userId: targetId, roomId: String(room._id) });
+
+    const securityLog = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await expectCode(service.promoteMember({ actorUserId: memberId, roomId: String(room._id), userId: targetId }), 'AUTH_FORBIDDEN');
+    await expectCode(service.removeMember({ actorUserId: memberId, roomId: String(room._id), userId: targetId }), 'AUTH_FORBIDDEN');
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: targetId })).not.toBeNull();
+    const entries = securityLog.mock.calls.map(([line]) => JSON.parse(line));
+    expect(entries).toEqual(expect.arrayContaining([
+      expect.objectContaining({ event: 'room_admin_forbidden', userId: memberId, roomId: String(room._id), action: 'promote' }),
+      expect.objectContaining({ event: 'room_admin_forbidden', userId: memberId, roomId: String(room._id), action: 'remove' }),
+    ]));
+    expect(entries.every((entry) => !('password' in entry) && !('token' in entry))).toBe(true);
+    securityLog.mockRestore();
+  });
+
+  test('admin actions do not reveal whether an unjoined room id exists', async () => {
+    const securityLog = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const actorUserId = newId();
+    const roomId = newId();
+    const targetUserId = newId();
+
+    await expectCode(service.promoteMember({ actorUserId, roomId, userId: targetUserId }), 'AUTH_FORBIDDEN');
+    await expectCode(service.removeMember({ actorUserId, roomId, userId: targetUserId }), 'AUTH_FORBIDDEN');
+
+    securityLog.mockRestore();
+  });
+
+  test('the last admin cannot leave or be removed', async () => {
+    const { room } = await service.createRoom({ userId: creatorId, name: 'last admin team' });
+    const memberId = newId();
+    await service.joinRoom({ userId: memberId, roomId: String(room._id) });
+
+    await expectCode(service.leaveRoom({ userId: creatorId, roomId: String(room._id) }), 'VALIDATION_FAILED');
+    await expectCode(service.removeMember({ actorUserId: creatorId, roomId: String(room._id), userId: creatorId }), 'VALIDATION_FAILED');
+    expect(await RoomMembership.exists({ room_id: room._id, user_id: creatorId })).not.toBeNull();
+  });
+
+  test('concurrent self-removals cannot remove every admin', async () => {
+    const { room } = await service.createRoom({ userId: creatorId, name: 'concurrent admin team' });
+    const secondAdminId = newId();
+    await service.joinRoom({ userId: secondAdminId, roomId: String(room._id) });
+    await service.promoteMember({ actorUserId: creatorId, roomId: String(room._id), userId: secondAdminId });
+
+    const results = await Promise.allSettled([
+      service.removeMember({ actorUserId: creatorId, roomId: String(room._id), userId: creatorId }),
+      service.removeMember({ actorUserId: secondAdminId, roomId: String(room._id), userId: secondAdminId }),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(await RoomMembership.countDocuments({ room_id: room._id, role: 'admin' })).toBe(1);
+  });
+
+  test('a member list includes role and safe public user fields', async () => {
+    const UserModel = {
+      find: jest.fn(() => ({
+        select: jest.fn(() => ({ lean: jest.fn().mockResolvedValue([{ _id: creatorId, username: 'alice', status: 'online' }]) })),
+      })),
+    };
+    service = createRoomService({ UserModel });
+    const { room } = await service.createRoom({ userId: creatorId, name: 'members team' });
+
+    const members = await service.listMembers({ userId: creatorId, roomId: String(room._id) });
+
+    expect(members).toEqual([{ userId: creatorId, username: 'alice', role: 'admin', status: 'online' }]);
   });
 });
 

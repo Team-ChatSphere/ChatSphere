@@ -10,6 +10,8 @@ const { createRoomService, isMember } = require('./services/rooms/roomService');
 const { createJwtAuth, createSocketJwtAuth } = require('./middleware/jwtAuth');
 const { createAuthRouter } = require('./routes/auth');
 const { createMessagesRouter } = require('./routes/messages');
+const { createRoomsRouter } = require('./routes/rooms');
+const { createUsersRouter } = require('./routes/users');
 const { registerMessagingHandlers, deliverPending, userRoom } = require('./sockets/messagingHandlers');
 const { registerRoomHandlers, createRoomMessageHandler, socketRoom } = require('./sockets/roomHandlers');
 const { rateLimitMiddleware } = require('./sockets/rateLimit');
@@ -23,6 +25,19 @@ const { rateLimitMiddleware } = require('./sockets/rateLimit');
  * @param {object} [options.rateLimit]  { capacity, refillPerSec } for message:send (SEC-005)
  */
 function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLimit } = {}) {
+  const pendingPresence = new Set();
+  function schedulePresence(operation, label) {
+    const pending = Promise.resolve().then(operation).catch((err) => {
+      console.error(`presence ${label} failed`, err);
+    });
+    pendingPresence.add(pending);
+    pending.finally(() => pendingPresence.delete(pending));
+    return pending;
+  }
+  async function drainPresence() {
+    while (pendingPresence.size > 0) await Promise.all([...pendingPresence]);
+  }
+
   const authService = createAuthService({ jwtSecret, jwtExpiresIn, bcryptRounds });
   const roomService = createRoomService();
   const messagingService = createMessagingService({
@@ -43,6 +58,8 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLi
   function registerRoutes(app) {
     app.use('/api/auth', createAuthRouter({ authService }));
     app.use('/api/messages', jwtAuth, createMessagesRouter({ service: messagingService }));
+    app.use('/api/rooms', jwtAuth, createRoomsRouter({ service: roomService, messagingService, RoomModel: Room }));
+    app.use('/api/users', jwtAuth, createUsersRouter({ UserModel: User }));
   }
 
   function registerSockets(io) {
@@ -55,15 +72,13 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLi
       socket.join(userRoom(socket.user.id));
       registerRoomHandlers(io, socket, { service: roomService });
       registerMessagingHandlers(io, socket, { service: messagingService, onRoomMessage });
-      if (presence) {
-        socket.on('disconnect', () => presence.onDisconnect(io, socket));
-      }
+      if (presence) socket.on('disconnect', () => schedulePresence(() => presence.onDisconnect(io, socket), 'disconnect'));
 
       try {
         // Rejoin the channels of every room this user is a member of (after a reconnect).
         const memberships = await RoomMembership.find({ user_id: socket.user.id }).select('room_id').lean();
         await Promise.all(memberships.map(({ room_id }) => socket.join(socketRoom(String(room_id)))));
-        if (presence) await presence.onConnect(io, socket);
+        if (presence) await schedulePresence(() => presence.onConnect(io, socket), 'connect');
         await deliverPending(io, socket, { service: messagingService, usernamesFor });
         socket.emit('session:ready', { userId: socket.user.id, username: socket.user.username });
       } catch (err) {
@@ -72,7 +87,7 @@ function createGateway({ jwtSecret, jwtExpiresIn, bcryptRounds, presence, rateLi
     });
   }
 
-  return { authService, roomService, messagingService, jwtAuth, registerRoutes, registerSockets };
+  return { authService, roomService, messagingService, jwtAuth, registerRoutes, registerSockets, drainPresence };
 }
 
 module.exports = { createGateway };

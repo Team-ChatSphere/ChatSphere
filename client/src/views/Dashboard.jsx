@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { useSocket } from '../state/SocketContext.jsx';
+import { apiRequest } from '../api/client.js';
 import DirectConversation from '../components/DirectConversation.jsx';
 import RoomsPanel from '../components/RoomsPanel.jsx';
 import { loadRecentDms, saveRecentDms, touchDm } from '../state/recentDms.js';
@@ -39,13 +40,43 @@ function NewDirectMessage({ selfId, onStart, onCancel }) {
 }
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, token, signOut } = useAuth();
   const { socket, connectionState } = useSocket();
   const [activeTab, setActiveTab] = useState('messages');
   const [activePeer, setActivePeer] = useState(null);
   const [dms, setDms] = useState(() => (user ? loadRecentDms(user.id) : []));
   const [composing, setComposing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState({ users: [], rooms: [] });
+  const [searchError, setSearchError] = useState('');
+  const [roomToJoin, setRoomToJoin] = useState(null);
+
+  useEffect(() => {
+    const query = searchTerm.trim();
+    if (query.length < 2) {
+      setSearchResults({ users: [], rooms: [] });
+      setSearchError('');
+      return undefined;
+    }
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const search = encodeURIComponent(query);
+        const [userResult, roomResult] = await Promise.all([
+          apiRequest(`/api/users?search=${search}`, { token }),
+          apiRequest(`/api/rooms?search=${search}`, { token }),
+        ]);
+        if (active) {
+          setSearchResults({ users: userResult.users || [], rooms: roomResult.rooms || [] });
+          setSearchError('');
+        }
+      } catch (requestError) {
+        if (active) setSearchError(requestError.message);
+      }
+    }, 250);
+    return () => { active = false; clearTimeout(timer); };
+  }, [searchTerm, token]);
 
   useEffect(() => {
     if (user) saveRecentDms(user.id, dms);
@@ -76,6 +107,21 @@ export default function Dashboard() {
     openDm(entry);
   }
 
+  function chooseUser(result) {
+    startDm({ id: result.userId, username: result.username });
+    setSearchTerm('');
+    setSearchResults({ users: [], rooms: [] });
+  }
+
+  function chooseRoom(room) {
+    setRoomToJoin(room);
+    setActiveTab('rooms');
+    setSearchTerm('');
+    setSearchResults({ users: [], rooms: [] });
+  }
+
+  const clearRoomSelection = useCallback(() => setRoomToJoin(null), []);
+
   async function copyMyId() {
     try {
       await navigator.clipboard.writeText(user.id);
@@ -101,7 +147,15 @@ export default function Dashboard() {
           <button className="text-button" onClick={copyMyId} title="Share this so others can message you">{copied ? 'Copied!' : 'Copy my ID'}</button>
           <button className="text-button" onClick={signOut}>Sign out</button>
         </div>
-        <div className="search-wrap"><span aria-hidden="true">⌕</span><input aria-label="Search conversations" placeholder="Search conversations" /></div>
+        <div className="search-area">
+          <div className="search-wrap"><span aria-hidden="true">⌕</span><input aria-label="Search people and rooms" placeholder="Search people and rooms" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div>
+          {searchTerm.trim().length >= 2 && <div className="search-results" role="listbox" aria-label="Search results">
+            {searchError && <p className="search-message" role="alert">{searchError}</p>}
+            {searchResults.users.map((result) => <button key={result.userId} role="option" onClick={() => chooseUser(result)}><span className="avatar">{result.username.slice(0, 1).toUpperCase()}</span><span><strong>{result.username}</strong><small>Person · {result.status || 'offline'}</small></span></button>)}
+            {searchResults.rooms.map((room) => <button key={room.roomId} role="option" onClick={() => chooseRoom(room)}><span className="room-list-mark">#</span><span><strong>{room.name}</strong><small>Group room</small></span></button>)}
+            {!searchError && searchResults.users.length === 0 && searchResults.rooms.length === 0 && <p className="search-message">No matches yet.</p>}
+          </div>}
+        </div>
         <nav className="sidebar-tabs" aria-label="Conversation type">
           <button className={activeTab === 'messages' ? 'selected' : ''} onClick={() => setActiveTab('messages')}>Messages</button>
           <button className={activeTab === 'rooms' ? 'selected' : ''} onClick={() => setActiveTab('rooms')}>Rooms</button>
@@ -135,7 +189,7 @@ export default function Dashboard() {
         <footer className="sidebar-footer"><span className={`connection-dot ${connectionState}`} />{connectionState === 'connected' ? 'Connected' : connectionState === 'error' ? 'Connection issue' : 'Connecting…'}</footer>
       </aside>
       <section className="main-panel">
-        {activeTab === 'rooms' ? <RoomsPanel /> : activeEntry ? (
+        {activeTab === 'rooms' ? <RoomsPanel joinRoomSelection={roomToJoin} onRoomSelectionHandled={clearRoomSelection} /> : activeEntry ? (
           <DirectConversation
             key={activeEntry.peer.id}
             peer={activeEntry.peer}
