@@ -33,8 +33,8 @@ async function main() {
   httpServer.listen(config.port, () => console.log(`ChatSphere server on http://localhost:${config.port}`));
 
   const shutdown = async () => {
-    io.close();
-    httpServer.close();
+    await new Promise((resolve) => io.close(resolve));
+    await gateway.drainPresence();
     if (redis.isReady) await redis.quit();
     await mongoose.disconnect();
     process.exit(0);
