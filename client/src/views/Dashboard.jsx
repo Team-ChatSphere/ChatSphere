@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [searchResults, setSearchResults] = useState({ users: [], rooms: [] });
   const [searchError, setSearchError] = useState('');
   const [roomToJoin, setRoomToJoin] = useState(null);
+  const [createRoomRequest, setCreateRoomRequest] = useState(0);
 
   useEffect(() => {
     const query = searchTerm.trim();
@@ -139,7 +140,6 @@ export default function Dashboard() {
       <aside className="sidebar">
         <header className="sidebar-header">
           <div className="brand-lockup"><span className="brand-mark small">C</span><span>ChatSphere</span></div>
-          <button className="icon-button" aria-label="More options">···</button>
         </header>
         <div className="profile-row">
           <div className="avatar avatar-self">{(user?.username || '?').slice(0, 1).toUpperCase()}</div>
@@ -161,7 +161,7 @@ export default function Dashboard() {
           <button className={activeTab === 'rooms' ? 'selected' : ''} onClick={() => setActiveTab('rooms')}>Rooms</button>
         </nav>
         <section className="conversation-list">
-          <div className="section-heading"><span>{activeTab === 'messages' ? 'DIRECT MESSAGES' : 'YOUR ROOMS'}</span><button className="icon-button" aria-label={activeTab === 'messages' ? 'New message' : 'Create room'} onClick={activeTab === 'messages' ? () => setComposing((c) => !c) : undefined}>＋</button></div>
+          <div className="section-heading"><span>{activeTab === 'messages' ? 'DIRECT MESSAGES' : 'YOUR ROOMS'}</span><button className="icon-button" aria-label={activeTab === 'messages' ? 'New message' : 'Create room'} onClick={activeTab === 'messages' ? () => setComposing((c) => !c) : () => setCreateRoomRequest((n) => n + 1)}>＋</button></div>
           {activeTab === 'messages' && composing && (
             <NewDirectMessage selfId={user?.id} onStart={startDm} onCancel={() => setComposing(false)} />
           )}
@@ -189,7 +189,7 @@ export default function Dashboard() {
         <footer className="sidebar-footer"><span className={`connection-dot ${connectionState}`} />{connectionState === 'connected' ? 'Connected' : connectionState === 'error' ? 'Connection issue' : 'Connecting…'}</footer>
       </aside>
       <section className="main-panel">
-        {activeTab === 'rooms' ? <RoomsPanel joinRoomSelection={roomToJoin} onRoomSelectionHandled={clearRoomSelection} /> : activeEntry ? (
+        {activeTab === 'rooms' ? <RoomsPanel joinRoomSelection={roomToJoin} onRoomSelectionHandled={clearRoomSelection} createRequest={createRoomRequest} /> : activeEntry ? (
           <DirectConversation
             key={activeEntry.peer.id}
             peer={activeEntry.peer}

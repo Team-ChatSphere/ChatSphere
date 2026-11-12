@@ -87,4 +87,13 @@ describe('Dashboard DM list (CS-13)', () => {
     expect(await screen.findByText('Room · share ID eeeeeeeeeeeeeeeeeeeeeeee')).toBeTruthy();
     expect(socket.emitted.some((item) => item.event === 'room:join' && item.payload.roomId === 'e'.repeat(24))).toBe(true);
   });
+
+  test('has no inert header menu, and the sidebar + on the Rooms tab opens the create-room form', () => {
+    render(<Dashboard />);
+    expect(screen.queryByLabelText('More options')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Rooms' }));
+    expect(screen.queryByLabelText('Create a room')).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Create room' })[0]);
+    expect(screen.getByLabelText('Create a room')).toBeTruthy();
+  });
 });

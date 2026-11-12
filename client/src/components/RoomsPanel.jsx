@@ -178,7 +178,7 @@ function RoomConversation({ room, socket, user, token, onLeave, onRemoved }) {
   );
 }
 
-export default function RoomsPanel({ joinRoomSelection = null, onRoomSelectionHandled = noop }) {
+export default function RoomsPanel({ joinRoomSelection = null, onRoomSelectionHandled = noop, createRequest = 0 }) {
   const { token, user } = useAuth();
   const { socket } = useSocket();
   const [rooms, setRooms] = useState(() => user ? loadRooms(user.id) : []);
@@ -193,6 +193,11 @@ export default function RoomsPanel({ joinRoomSelection = null, onRoomSelectionHa
   const activeRoom = rooms.find((room) => room.roomId === activeRoomId);
   const activeRoomIdRef = useRef(activeRoomId);
   activeRoomIdRef.current = activeRoomId;
+
+  // The sidebar's + on the Rooms tab opens the same create-room form.
+  useEffect(() => {
+    if (createRequest > 0) setCreateOpen(true);
+  }, [createRequest]);
 
   useEffect(() => {
     if (user) window.localStorage.setItem(storageKey(user.id), JSON.stringify(rooms));
