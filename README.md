@@ -41,7 +41,10 @@ CI runs the same on every PR and push to `develop` / `main`.
 
 ## Docs
 
-- `docs/`: SRS v1.1, SAD v1.0, Test Plan v1.0 and v1.1 (PDF; v1.1 has the updated test cases), integration contract (`INTEGRATION.md`), RTM, deviation log, Postman collection
+- [API reference](docs/API.md): REST endpoints, Socket.IO events, payloads and error codes
+- [Postman collection and run results](docs/postman/README.md): collection, reproducible Newman run and recorded results
+- [Test and coverage reports](docs/reports/README.md): generated test report, coverage summaries and Test Plan v1.1 system validation
+- `docs/`: SRS v1.1, SAD v1.0, Test Plan v1.0 and v1.1 (PDF), integration contract, RTM and deviation log
 - Synopsis and the combined Part-1 PDF are in the repo root
 
 ## Workflow
