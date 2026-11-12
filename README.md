@@ -44,7 +44,9 @@ CI runs the same on every PR and push to `develop` / `main`.
 - [API reference](docs/API.md): REST endpoints, Socket.IO events, payloads and error codes
 - [Postman collection and run results](docs/postman/README.md): collection, reproducible Newman run and recorded results
 - [Test and coverage reports](docs/reports/README.md): generated test report, coverage summaries and Test Plan v1.1 system validation
-- `docs/`: SRS v1.1, SAD v1.0, Test Plan v1.0 and v1.1 (PDF), integration contract, RTM and deviation log
+- [Demo videos](docs/demo/README.md): Sprint 1 and Sprint 2 demos, with board screenshots for each sprint
+- [Usability walkthrough](docs/usability/README.md): register → first message in 3 screens
+- `docs/`: SRS v1.2, SAD v1.1 and Test Plan v1.1 (PDF, earlier versions kept), integration contract, RTM and deviation log
 - Synopsis and the combined Part-1 PDF are in the repo root
 
 ## Workflow
