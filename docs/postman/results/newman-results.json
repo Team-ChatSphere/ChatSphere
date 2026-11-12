@@ -1,0 +1,5704 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "a5378326-bd9a-435b-a3ec-532d9b16d77d",
+        "name": "Health",
+        "item": [
+          {
+            "id": "5348157b-2f44-477b-9c7b-8ec1cdd01296",
+            "name": "Health check",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "health"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "63249cf7-e294-4a81-9481-61650b678f34",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                    "pm.test('status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+                    "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                  ],
+                  "_lastExecutionId": "ab618f15-0e30-4f0f-9008-7d9314a2d878"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "7c9b25e6-5676-4434-9e63-eb90a23e6261",
+        "name": "Auth",
+        "item": [
+          {
+            "id": "14aa159f-af95-4d32-a99d-81343bb91ecf",
+            "name": "Register (FR-001, FR-002, TC-01)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "register"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "id": "6371a0b2-47af-4adb-a436-44dc75f99401",
+                  "type": "text/javascript",
+                  "exec": [
+                    "// Fresh identity every run, so repeated runs never hit an already-registered email.",
+                    "// The duplicate-email and short-password requests below reuse it on purpose.",
+                    "const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);",
+                    "pm.collectionVariables.set('username', 'pm_' + suffix);",
+                    "pm.collectionVariables.set('email', 'pm_' + suffix + '@example.com');",
+                    "pm.collectionVariables.unset('token');",
+                    "pm.collectionVariables.unset('userId');"
+                  ],
+                  "_lastExecutionId": "5bcc2b48-1387-4eaf-b264-2aa0353f6039"
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "id": "cf726397-a052-489e-bd13-d261ef133a3f",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                    "pm.test('returns userId', () => pm.expect(pm.response.json().userId).to.match(/^[0-9a-f]{24}$/));",
+                    "pm.collectionVariables.set('userId', pm.response.json().userId);",
+                    "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                  ],
+                  "_lastExecutionId": "f5fab0a9-81a4-41dc-aa9f-6c31855aeec0"
+                }
+              }
+            ]
+          },
+          {
+            "id": "5cfdbef5-03ec-4438-9fe2-6c217ac7c9a2",
+            "name": "Register duplicate email is rejected (TC-02)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "register"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"username\": \"{{username}}_2\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "5d1b319e-76d1-4b74-a6cb-2a3f97efff78",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                  ],
+                  "_lastExecutionId": "5ad6938f-36c5-4e44-9426-81898975d46b"
+                }
+              }
+            ]
+          },
+          {
+            "id": "244d967b-acb1-4bd0-ad69-0ec453298bee",
+            "name": "Register short password is rejected (SEC-001)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "register"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"username\": \"{{username}}_3\",\n  \"email\": \"short_{{email}}\",\n  \"password\": \"short\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "567777c4-43fa-42d0-a8fe-72170cdfff1c",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                  ],
+                  "_lastExecutionId": "dc0c3315-7f15-4e97-8aae-650be65b799c"
+                }
+              }
+            ]
+          },
+          {
+            "id": "41d958c4-12f7-4650-95df-43ba3900414a",
+            "name": "Login (FR-003, TC-03)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "login"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"usernameOrEmail\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "82c4a7f1-6eff-42f5-8e7f-81faf3ffc1a9",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                    "pm.test('returns a JWT', () => pm.expect(pm.response.json().token.split('.')).to.have.length(3));",
+                    "pm.collectionVariables.set('token', pm.response.json().token);",
+                    "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                  ],
+                  "_lastExecutionId": "5d4ffca8-bc47-496a-b404-5a12d61662e2"
+                }
+              }
+            ]
+          },
+          {
+            "id": "09c82127-bd18-4d56-8b86-1ee61cb468c0",
+            "name": "Login with wrong password (401)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "login"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"usernameOrEmail\": \"{{username}}\",\n  \"password\": \"wrong-password\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "b7a9d96e-339b-4b6b-9fe0-31e2d0ba3bbc",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                    "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                  ],
+                  "_lastExecutionId": "a59c1b53-ec3f-4ddb-9399-b8f71dfbcef6"
+                }
+              }
+            ]
+          },
+          {
+            "id": "6d6f214c-da86-475e-bd8c-797ea1776e89",
+            "name": "Login with unknown user gives the same 401",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "login"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"usernameOrEmail\": \"no_such_user_xyz\",\n  \"password\": \"whatever123\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "e24575bc-8e0e-4852-8395-58409b9bfd44",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                    "pm.test('same message as a wrong password (no account enumeration)', () => pm.expect(pm.response.json().error.message).to.eql('Invalid username/email or password'));"
+                  ],
+                  "_lastExecutionId": "2e0f25c9-3c1e-494f-ba3e-cf2d730f138e"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "88b9a74e-0bfc-4293-96f6-c20a3ffc7dde",
+        "name": "DM history",
+        "item": [
+          {
+            "id": "6c0a251e-ee07-4dd8-ac93-e76582e2b268",
+            "name": "Login as the DM participant",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "auth",
+                  "login"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"usernameOrEmail\": \"{{dmUser}}\",\n  \"password\": \"{{dmPassword}}\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              },
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "67cf4369-1674-443c-a958-73b6b8d5b905",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                    "pm.collectionVariables.set('dmToken', pm.response.json().token);"
+                  ],
+                  "_lastExecutionId": "8a54a049-adc5-41ee-b5b3-15e54fdbad37"
+                }
+              }
+            ]
+          },
+          {
+            "id": "3cb4ff99-9a07-407b-a599-c74565a6306f",
+            "name": "Get DM history (FR-018, TC-10)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "{{conversationId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [
+                  {
+                    "key": "page",
+                    "value": "1"
+                  },
+                  {
+                    "key": "pageSize",
+                    "value": "20"
+                  }
+                ],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "type": "string",
+                    "value": "{{dmToken}}",
+                    "key": "token"
+                  }
+                ]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "d9bea556-4ba6-4ce7-b153-292fa4d98c10",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                    "const body = pm.response.json();",
+                    "pm.test('has messages[] and nextPage', () => { pm.expect(body.messages).to.be.an('array').that.is.not.empty; pm.expect(body).to.have.property('nextPage'); });",
+                    "pm.test('newest first', () => { const t = body.messages.map((m) => new Date(m.timestamp).getTime()); pm.expect(t).to.eql([...t].sort((a, b) => b - a)); });",
+                    "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                  ],
+                  "_lastExecutionId": "6e0981ea-a3ea-4661-924f-496e8e9254f7"
+                }
+              }
+            ]
+          },
+          {
+            "id": "34c16056-a67e-40dc-b070-8ff320baff1e",
+            "name": "Get DM history, page size 1 has a next page",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "{{conversationId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [
+                  {
+                    "key": "page",
+                    "value": "1"
+                  },
+                  {
+                    "key": "pageSize",
+                    "value": "1"
+                  }
+                ],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "type": "string",
+                    "value": "{{dmToken}}",
+                    "key": "token"
+                  }
+                ]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "f66042cc-62e0-4583-adab-ac508eb49d18",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                    "pm.test('one message and nextPage 2', () => { const b = pm.response.json(); pm.expect(b.messages).to.have.length(1); pm.expect(b.nextPage).to.eql(2); });"
+                  ],
+                  "_lastExecutionId": "ff0e4682-298e-404b-beb6-ee94eaf4a929"
+                }
+              }
+            ]
+          },
+          {
+            "id": "e1eeadb4-a59a-4beb-8ae5-192cced00b65",
+            "name": "Get DM history without token (SEC-004, TC-04)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "{{conversationId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "noauth",
+                "noauth": []
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "0cc1a6dc-df46-4e37-ad1e-ae9d052a233e",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                    "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                  ],
+                  "_lastExecutionId": "3ab4b3c5-90d7-45c2-9ccf-0ed88ae12f1c"
+                }
+              }
+            ]
+          },
+          {
+            "id": "25d37266-5112-4854-8d7c-f1a027320ade",
+            "name": "Get DM history with a tampered token (SEC-004)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "{{conversationId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "type": "string",
+                    "value": "{{dmToken}}x",
+                    "key": "token"
+                  }
+                ]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "5db74008-7a81-4ea1-943b-66e9a1e58145",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                    "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                  ],
+                  "_lastExecutionId": "873658dd-ef07-43a9-a1c0-2aadd158ca35"
+                }
+              }
+            ]
+          },
+          {
+            "id": "eb143eef-d324-4f17-aacc-c5befa5564a0",
+            "name": "Get DM history of a conversation I am not in (FR-015)",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "{{conversationId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "type": "string",
+                    "value": "{{token}}",
+                    "key": "token"
+                  }
+                ]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "2efbc5e7-31c9-45e2-9401-2b9a9ee627f7",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                    "pm.test('error code is AUTH_FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_FORBIDDEN'));"
+                  ],
+                  "_lastExecutionId": "8b303564-b45a-4066-a558-4494c9723db1"
+                }
+              }
+            ]
+          },
+          {
+            "id": "f1a39425-3399-4a97-a984-83b4917babf8",
+            "name": "Get DM history with bad pageSize",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "{{conversationId}}"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [
+                  {
+                    "key": "pageSize",
+                    "value": "zero"
+                  }
+                ],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "type": "string",
+                    "value": "{{dmToken}}",
+                    "key": "token"
+                  }
+                ]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "6628b128-577a-4f48-a513-f5491dc2b585",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                  ],
+                  "_lastExecutionId": "b8106327-0e05-4b54-855e-4d780ba0b7f5"
+                }
+              }
+            ]
+          },
+          {
+            "id": "e74560f1-012c-46b6-b156-e38d1b961e23",
+            "name": "Get DM history with a malformed id",
+            "request": {
+              "url": {
+                "path": [
+                  "api",
+                  "messages",
+                  "not-an-id"
+                ],
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "type": "string",
+                    "value": "{{dmToken}}",
+                    "key": "token"
+                  }
+                ]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "19b98b36-3546-402e-8473-625b8e43f4fa",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                    "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                  ],
+                  "_lastExecutionId": "4bd310e1-8cc0-4d8f-b932-5b349e5cb660"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "auth": {
+      "type": "bearer",
+      "bearer": [
+        {
+          "type": "string",
+          "value": "{{token}}",
+          "key": "token"
+        }
+      ]
+    },
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "http://localhost:4000",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "username"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "email"
+      },
+      {
+        "type": "any",
+        "value": "Passw0rd!",
+        "key": "password"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "userId"
+      },
+      {
+        "description": {
+          "content": "A DM conversation that dmUser is in (from npm run seed:dm)",
+          "type": "text/plain"
+        },
+        "type": "any",
+        "value": "",
+        "key": "conversationId"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "dmUser"
+      },
+      {
+        "type": "any",
+        "value": "Passw0rd!",
+        "key": "dmPassword"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "dmToken"
+      }
+    ],
+    "info": {
+      "_postman_id": "1db6e8f6-dd74-4f01-b76d-4b9fdeb0349d",
+      "name": "ChatSphere API (final)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "REST API from SAD 3.2.1 (Test Plan §8, CS-14 / CS-35). Socket.IO events are documented in docs/API.md.\n\nRun everything automatically (starts a server, seeds a DM, runs this collection, saves results): `cd server && npm run postman`.\n\nManual run: start the server, run `npm run seed:dm` in server/ and copy the printed conversationId / dmUser / dmPassword into the collection variables, then run the collection.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "56d22ae1-1fd9-4763-bc9e-d18558d1357c",
+    "values": [
+      {
+        "type": "any",
+        "value": "http://localhost:49911",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "6af4be3bd49bd9f89c93cadb",
+        "key": "conversationId"
+      },
+      {
+        "type": "any",
+        "value": "dm_a_mwchy0rd",
+        "key": "dmUser"
+      },
+      {
+        "type": "any",
+        "value": "Passw0rd!",
+        "key": "dmPassword"
+      }
+    ]
+  },
+  "globals": {
+    "id": "4a3fcbe3-0562-4cec-973c-40b4b811c2e9",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 15,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 16,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 15,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 15,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 15,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 34,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 15,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 5.333333333333333,
+      "responseMin": 1,
+      "responseMax": 25,
+      "responseSd": 5.545769158156114,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1794424381485,
+      "completed": 1794424382837
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 15,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "4d87c6a1-6f31-4bb1-a58f-ca6ab6ad2c87",
+          "httpRequestId": "abfc5a85-8164-4d43-b822-1bb05a910709"
+        },
+        "item": {
+          "id": "5348157b-2f44-477b-9c7b-8ec1cdd01296",
+          "name": "Health check",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "health"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "63249cf7-e294-4a81-9481-61650b678f34",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ],
+                "_lastExecutionId": "ab618f15-0e30-4f0f-9008-7d9314a2d878"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0cd7e2a0-de02-4b6c-9598-037f8c4d77f8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "6f016e0c-806e-4422-b270-94596f2e43fb",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "15"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"f-VaSQ4oDUiZblZNAEkkN+sX+q3Sg\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:01 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              111,
+              107,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 25,
+          "responseSize": 15
+        },
+        "id": "5348157b-2f44-477b-9c7b-8ec1cdd01296",
+        "assertions": [
+          {
+            "assertion": "status is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "status ok",
+            "skipped": false
+          },
+          {
+            "assertion": "responds within 1 s (NFR-002)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c899c249-a7d3-4ae5-8dda-89704ca4ba1f",
+          "length": 15,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "baee5e77-c612-4490-89e3-cb53b945380f"
+        },
+        "item": {
+          "id": "14aa159f-af95-4d32-a99d-81343bb91ecf",
+          "name": "Register (FR-001, FR-002, TC-01)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "6371a0b2-47af-4adb-a436-44dc75f99401",
+                "type": "text/javascript",
+                "exec": [
+                  "// Fresh identity every run, so repeated runs never hit an already-registered email.",
+                  "// The duplicate-email and short-password requests below reuse it on purpose.",
+                  "const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);",
+                  "pm.collectionVariables.set('username', 'pm_' + suffix);",
+                  "pm.collectionVariables.set('email', 'pm_' + suffix + '@example.com');",
+                  "pm.collectionVariables.unset('token');",
+                  "pm.collectionVariables.unset('userId');"
+                ],
+                "_lastExecutionId": "5bcc2b48-1387-4eaf-b264-2aa0353f6039"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "cf726397-a052-489e-bd13-d261ef133a3f",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('returns userId', () => pm.expect(pm.response.json().userId).to.match(/^[0-9a-f]{24}$/));",
+                  "pm.collectionVariables.set('userId', pm.response.json().userId);",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ],
+                "_lastExecutionId": "f5fab0a9-81a4-41dc-aa9f-6c31855aeec0"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "register"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "905815bb-e2fe-475e-8724-e56954c86a5c",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "104",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"username\": \"pm_mwchy26jcbgp\",\n  \"email\": \"pm_mwchy26jcbgp@example.com\",\n  \"password\": \"Passw0rd!\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "945f6a6b-bbab-405e-8555-271a1f752b7b",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "37"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"25-OphWl2OBI5Ro/STjGuS26hTg6bs\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:01 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              117,
+              115,
+              101,
+              114,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              100,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              101,
+              57,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 8,
+          "responseSize": 37
+        },
+        "id": "14aa159f-af95-4d32-a99d-81343bb91ecf",
+        "assertions": [
+          {
+            "assertion": "status is 201",
+            "skipped": false
+          },
+          {
+            "assertion": "returns userId",
+            "skipped": false
+          },
+          {
+            "assertion": "responds within 1 s (NFR-002)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0b669e1b-ce46-46ca-8e31-9810b60ccce2",
+          "length": 15,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "d347f43f-b12e-4947-b460-69e6d35a3048"
+        },
+        "item": {
+          "id": "5cfdbef5-03ec-4438-9fe2-6c217ac7c9a2",
+          "name": "Register duplicate email is rejected (TC-02)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}_2\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5d1b319e-76d1-4b74-a6cb-2a3f97efff78",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                ],
+                "_lastExecutionId": "5ad6938f-36c5-4e44-9426-81898975d46b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "register"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "601eaf45-82f6-4aad-9ba3-562e31842067",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "106",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"username\": \"pm_mwchy26jcbgp_2\",\n  \"email\": \"pm_mwchy26jcbgp@example.com\",\n  \"password\": \"Passw0rd!\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "1549c02e-a05f-4209-9e33-26850f14f535",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "92"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"5c-b96vhGR2oqIQ2alXNxHrSO4h45s\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:01 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              73,
+              68,
+              65,
+              84,
+              73,
+              79,
+              78,
+              95,
+              70,
+              65,
+              73,
+              76,
+              69,
+              68,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              110,
+              32,
+              97,
+              99,
+              99,
+              111,
+              117,
+              110,
+              116,
+              32,
+              119,
+              105,
+              116,
+              104,
+              32,
+              116,
+              104,
+              97,
+              116,
+              32,
+              101,
+              109,
+              97,
+              105,
+              108,
+              32,
+              97,
+              108,
+              114,
+              101,
+              97,
+              100,
+              121,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              115,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 4,
+          "responseSize": 92
+        },
+        "id": "5cfdbef5-03ec-4438-9fe2-6c217ac7c9a2",
+        "assertions": [
+          {
+            "assertion": "status is 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is VALIDATION_FAILED",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "3c299890-7cb1-4c7b-942f-cc08724366a0",
+          "length": 15,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "fa9712ba-cc97-4559-a2ab-ee55dbd137cc"
+        },
+        "item": {
+          "id": "244d967b-acb1-4bd0-ad69-0ec453298bee",
+          "name": "Register short password is rejected (SEC-001)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}_3\",\n  \"email\": \"short_{{email}}\",\n  \"password\": \"short\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "567777c4-43fa-42d0-a8fe-72170cdfff1c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                ],
+                "_lastExecutionId": "dc0c3315-7f15-4e97-8aae-650be65b799c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "register"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c691e0ad-5075-4916-b4fa-77165f5b6a38",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "108",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"username\": \"pm_mwchy26jcbgp_3\",\n  \"email\": \"short_pm_mwchy26jcbgp@example.com\",\n  \"password\": \"short\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "a220093c-849c-4877-8b0c-f2233599a85f",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "85"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"55-TqiXRNhElLyUxWuPiDrXXOhKjWs\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:01 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              73,
+              68,
+              65,
+              84,
+              73,
+              79,
+              78,
+              95,
+              70,
+              65,
+              73,
+              76,
+              69,
+              68,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              80,
+              97,
+              115,
+              115,
+              119,
+              111,
+              114,
+              100,
+              32,
+              109,
+              117,
+              115,
+              116,
+              32,
+              98,
+              101,
+              32,
+              56,
+              226,
+              128,
+              147,
+              55,
+              50,
+              32,
+              99,
+              104,
+              97,
+              114,
+              97,
+              99,
+              116,
+              101,
+              114,
+              115,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 85
+        },
+        "id": "244d967b-acb1-4bd0-ad69-0ec453298bee",
+        "assertions": [
+          {
+            "assertion": "status is 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is VALIDATION_FAILED",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "95fcf826-f309-4d14-99d4-25dc884de8ff",
+          "length": 15,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "98e010b1-8f21-457a-a3f7-645577527b38"
+        },
+        "item": {
+          "id": "41d958c4-12f7-4650-95df-43ba3900414a",
+          "name": "Login (FR-003, TC-03)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "82c4a7f1-6eff-42f5-8e7f-81faf3ffc1a9",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns a JWT', () => pm.expect(pm.response.json().token.split('.')).to.have.length(3));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ],
+                "_lastExecutionId": "5d4ffca8-bc47-496a-b404-5a12d61662e2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "login"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "368477e5-4a5a-471f-b3f4-3c714febe263",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "69",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"usernameOrEmail\": \"pm_mwchy26jcbgp\",\n  \"password\": \"Passw0rd!\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "417434b6-2923-44d5-adb5-94b6d3150215",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "223"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"df-ij/Rf4sKRDIgUbNDQxH0iJGMkvo\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:01 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              50,
+              89,
+              87,
+              89,
+              48,
+              89,
+              109,
+              85,
+              122,
+              90,
+              71,
+              81,
+              48,
+              79,
+              87,
+              74,
+              107,
+              79,
+              87,
+              89,
+              52,
+              79,
+              87,
+              77,
+              53,
+              77,
+              50,
+              78,
+              104,
+              90,
+              84,
+              107,
+              105,
+              76,
+              67,
+              74,
+              49,
+              99,
+              50,
+              86,
+              121,
+              98,
+              109,
+              70,
+              116,
+              90,
+              83,
+              73,
+              54,
+              73,
+              110,
+              66,
+              116,
+              88,
+              50,
+              49,
+              51,
+              89,
+              50,
+              104,
+              53,
+              77,
+              106,
+              90,
+              113,
+              89,
+              50,
+              74,
+              110,
+              99,
+              67,
+              73,
+              115,
+              73,
+              109,
+              108,
+              104,
+              100,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              53,
+              78,
+              68,
+              81,
+              121,
+              78,
+              68,
+              77,
+              52,
+              77,
+              83,
+              119,
+              105,
+              90,
+              88,
+              104,
+              119,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              107,
+              48,
+              78,
+              68,
+              89,
+              51,
+              78,
+              84,
+              103,
+              120,
+              102,
+              81,
+              46,
+              120,
+              84,
+              122,
+              54,
+              117,
+              54,
+              104,
+              98,
+              106,
+              100,
+              111,
+              121,
+              98,
+              67,
+              67,
+              69,
+              80,
+              88,
+              50,
+              111,
+              55,
+              83,
+              84,
+              73,
+              119,
+              106,
+              87,
+              50,
+              65,
+              69,
+              104,
+              114,
+              52,
+              79,
+              115,
+              48,
+              108,
+              121,
+              49,
+              76,
+              54,
+              118,
+              77,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5,
+          "responseSize": 223
+        },
+        "id": "41d958c4-12f7-4650-95df-43ba3900414a",
+        "assertions": [
+          {
+            "assertion": "status is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "returns a JWT",
+            "skipped": false
+          },
+          {
+            "assertion": "responds within 1 s (NFR-002)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "d44422f3-0148-4749-a5a8-357961cfb7cf",
+          "length": 15,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "f6229487-fb0a-44df-8413-42b6ecec0844"
+        },
+        "item": {
+          "id": "09c82127-bd18-4d56-8b86-1ee61cb468c0",
+          "name": "Login with wrong password (401)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{username}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "b7a9d96e-339b-4b6b-9fe0-31e2d0ba3bbc",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                ],
+                "_lastExecutionId": "a59c1b53-ec3f-4ddb-9399-b8f71dfbcef6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "login"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "e6a1e9b0-50d6-46f2-a59e-7d8e55f20aff",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "74",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"usernameOrEmail\": \"pm_mwchy26jcbgp\",\n  \"password\": \"wrong-password\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "f4a589d5-ff33-4e56-b025-86f1e0a89c9e",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "86"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"56-gS7Pf9w4ULyu/olYLsC2fuGL0Qw\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:01 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              85,
+              84,
+              72,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              95,
+              84,
+              79,
+              75,
+              69,
+              78,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              73,
+              110,
+              118,
+              97,
+              108,
+              105,
+              100,
+              32,
+              117,
+              115,
+              101,
+              114,
+              110,
+              97,
+              109,
+              101,
+              47,
+              101,
+              109,
+              97,
+              105,
+              108,
+              32,
+              111,
+              114,
+              32,
+              112,
+              97,
+              115,
+              115,
+              119,
+              111,
+              114,
+              100,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5,
+          "responseSize": 86
+        },
+        "id": "09c82127-bd18-4d56-8b86-1ee61cb468c0",
+        "assertions": [
+          {
+            "assertion": "status is 401",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is AUTH_INVALID_TOKEN",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "25a42121-3003-4157-8b84-1a64443e95b3",
+          "length": 15,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "a4693f8b-ba59-4915-bb10-fdf3360edee1"
+        },
+        "item": {
+          "id": "6d6f214c-da86-475e-bd8c-797ea1776e89",
+          "name": "Login with unknown user gives the same 401",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"no_such_user_xyz\",\n  \"password\": \"whatever123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "e24575bc-8e0e-4852-8395-58409b9bfd44",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('same message as a wrong password (no account enumeration)', () => pm.expect(pm.response.json().error.message).to.eql('Invalid username/email or password'));"
+                ],
+                "_lastExecutionId": "2e0f25c9-3c1e-494f-ba3e-cf2d730f138e"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "login"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d81de5cf-3c40-4b03-8ef8-97cc1cc8c8e7",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "72",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"usernameOrEmail\": \"no_such_user_xyz\",\n  \"password\": \"whatever123\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "145af4a9-fd41-4908-8034-b9d534bbc6a9",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "86"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"56-gS7Pf9w4ULyu/olYLsC2fuGL0Qw\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              85,
+              84,
+              72,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              95,
+              84,
+              79,
+              75,
+              69,
+              78,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              73,
+              110,
+              118,
+              97,
+              108,
+              105,
+              100,
+              32,
+              117,
+              115,
+              101,
+              114,
+              110,
+              97,
+              109,
+              101,
+              47,
+              101,
+              109,
+              97,
+              105,
+              108,
+              32,
+              111,
+              114,
+              32,
+              112,
+              97,
+              115,
+              115,
+              119,
+              111,
+              114,
+              100,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5,
+          "responseSize": 86
+        },
+        "id": "6d6f214c-da86-475e-bd8c-797ea1776e89",
+        "assertions": [
+          {
+            "assertion": "status is 401",
+            "skipped": false
+          },
+          {
+            "assertion": "same message as a wrong password (no account enumeration)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "46a85605-1d04-4ebe-9c0e-707f3e46e790",
+          "length": 15,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "b6cc9f18-cf35-4c06-adf8-fa67b9f94181"
+        },
+        "item": {
+          "id": "6c0a251e-ee07-4dd8-ac93-e76582e2b268",
+          "name": "Login as the DM participant",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{dmUser}}\",\n  \"password\": \"{{dmPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "67cf4369-1674-443c-a958-73b6b8d5b905",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('dmToken', pm.response.json().token);"
+                ],
+                "_lastExecutionId": "8a54a049-adc5-41ee-b5b3-15e54fdbad37"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "auth",
+              "login"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "a840da51-84fc-4162-8b63-2d41d0caf343",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "67",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"usernameOrEmail\": \"dm_a_mwchy0rd\",\n  \"password\": \"Passw0rd!\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "f53e91a8-1ec9-4354-bec7-02cabf595403",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "220"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"dc-0yCv/dcC0u8CxnxFPwcKzpJseU0\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              50,
+              89,
+              87,
+              89,
+              48,
+              89,
+              109,
+              85,
+              122,
+              89,
+              109,
+              81,
+              48,
+              79,
+              87,
+              74,
+              107,
+              79,
+              87,
+              89,
+              52,
+              79,
+              87,
+              77,
+              53,
+              77,
+              50,
+              78,
+              104,
+              89,
+              50,
+              85,
+              105,
+              76,
+              67,
+              74,
+              49,
+              99,
+              50,
+              86,
+              121,
+              98,
+              109,
+              70,
+              116,
+              90,
+              83,
+              73,
+              54,
+              73,
+              109,
+              82,
+              116,
+              88,
+              50,
+              70,
+              102,
+              98,
+              88,
+              100,
+              106,
+              97,
+              72,
+              107,
+              119,
+              99,
+              109,
+              81,
+              105,
+              76,
+              67,
+              74,
+              112,
+              89,
+              88,
+              81,
+              105,
+              79,
+              106,
+              69,
+              51,
+              79,
+              84,
+              81,
+              48,
+              77,
+              106,
+              81,
+              122,
+              79,
+              68,
+              73,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              53,
+              78,
+              68,
+              81,
+              50,
+              78,
+              122,
+              85,
+              52,
+              77,
+              110,
+              48,
+              46,
+              83,
+              69,
+              66,
+              65,
+              81,
+              99,
+              65,
+              109,
+              49,
+              121,
+              104,
+              67,
+              122,
+              72,
+              66,
+              49,
+              55,
+              68,
+              68,
+              81,
+              45,
+              55,
+              104,
+              95,
+              98,
+              50,
+              76,
+              76,
+              108,
+              114,
+              108,
+              65,
+              90,
+              57,
+              117,
+              115,
+              118,
+              45,
+              103,
+              73,
+              105,
+              119,
+              56,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5,
+          "responseSize": 220
+        },
+        "id": "6c0a251e-ee07-4dd8-ac93-e76582e2b268",
+        "assertions": [
+          {
+            "assertion": "status is 200",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cfbd5f30-e773-400d-a024-b0d8400bace5",
+          "length": 15,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "1f40501c-e59a-46f0-8cb3-348d0451dc3e"
+        },
+        "item": {
+          "id": "3cb4ff99-9a07-407b-a599-c74565a6306f",
+          "name": "Get DM history (FR-018, TC-10)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "type": "string",
+                  "value": "{{dmToken}}",
+                  "key": "token"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d9bea556-4ba6-4ce7-b153-292fa4d98c10",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('has messages[] and nextPage', () => { pm.expect(body.messages).to.be.an('array').that.is.not.empty; pm.expect(body).to.have.property('nextPage'); });",
+                  "pm.test('newest first', () => { const t = body.messages.map((m) => new Date(m.timestamp).getTime()); pm.expect(t).to.eql([...t].sort((a, b) => b - a)); });",
+                  "pm.test('responds within 1 s (NFR-002)', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ],
+                "_lastExecutionId": "6e0981ea-a3ea-4661-924f-496e8e9254f7"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "6af4be3bd49bd9f89c93cadb"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "pageSize",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d6f30052-68be-4e79-81d2-8d226951938b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "type": "string",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+                "key": "token"
+              }
+            ]
+          }
+        },
+        "response": {
+          "id": "bf588df5-2601-469d-beb0-6364e830122f",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "439"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"1b7-vgUI+tQ2vHwMqC++283MU/4XDck\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              101,
+              53,
+              34,
+              44,
+              34,
+              114,
+              111,
+              111,
+              109,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              100,
+              98,
+              34,
+              44,
+              34,
+              115,
+              101,
+              110,
+              100,
+              101,
+              114,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              99,
+              101,
+              34,
+              44,
+              34,
+              99,
+              111,
+              110,
+              116,
+              101,
+              110,
+              116,
+              34,
+              58,
+              34,
+              65,
+              110,
+              100,
+              32,
+              97,
+              32,
+              115,
+              101,
+              99,
+              111,
+              110,
+              100,
+              32,
+              111,
+              110,
+              101,
+              44,
+              32,
+              102,
+              111,
+              114,
+              32,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              49,
+              49,
+              84,
+              49,
+              57,
+              58,
+              49,
+              50,
+              58,
+              53,
+              57,
+              46,
+              56,
+              52,
+              51,
+              90,
+              34,
+              44,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              115,
+              101,
+              110,
+              116,
+              34,
+              125,
+              44,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              100,
+              102,
+              34,
+              44,
+              34,
+              114,
+              111,
+              111,
+              109,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              100,
+              98,
+              34,
+              44,
+              34,
+              115,
+              101,
+              110,
+              100,
+              101,
+              114,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              99,
+              101,
+              34,
+              44,
+              34,
+              99,
+              111,
+              110,
+              116,
+              101,
+              110,
+              116,
+              34,
+              58,
+              34,
+              72,
+              105,
+              33,
+              32,
+              84,
+              104,
+              105,
+              115,
+              32,
+              105,
+              115,
+              32,
+              97,
+              32,
+              115,
+              101,
+              101,
+              100,
+              101,
+              100,
+              32,
+              68,
+              77,
+              46,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              49,
+              49,
+              84,
+              49,
+              57,
+              58,
+              49,
+              50,
+              58,
+              53,
+              57,
+              46,
+              56,
+              51,
+              55,
+              90,
+              34,
+              44,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              115,
+              101,
+              110,
+              116,
+              34,
+              125,
+              93,
+              44,
+              34,
+              110,
+              101,
+              120,
+              116,
+              80,
+              97,
+              103,
+              101,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 6,
+          "responseSize": 439
+        },
+        "id": "3cb4ff99-9a07-407b-a599-c74565a6306f",
+        "assertions": [
+          {
+            "assertion": "status is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "has messages[] and nextPage",
+            "skipped": false
+          },
+          {
+            "assertion": "newest first",
+            "skipped": false
+          },
+          {
+            "assertion": "responds within 1 s (NFR-002)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "d1ee840e-3372-4597-8767-4205dda298ec",
+          "length": 15,
+          "cycles": 1,
+          "position": 9,
+          "iteration": 0,
+          "httpRequestId": "59ce43c5-764a-4850-85b0-6e38ebfb68fb"
+        },
+        "item": {
+          "id": "34c16056-a67e-40dc-b070-8ff320baff1e",
+          "name": "Get DM history, page size 1 has a next page",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "1"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "type": "string",
+                  "value": "{{dmToken}}",
+                  "key": "token"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f66042cc-62e0-4583-adab-ac508eb49d18",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('one message and nextPage 2', () => { const b = pm.response.json(); pm.expect(b.messages).to.have.length(1); pm.expect(b.nextPage).to.eql(2); });"
+                ],
+                "_lastExecutionId": "ff0e4682-298e-404b-beb6-ee94eaf4a929"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "6af4be3bd49bd9f89c93cadb"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "pageSize",
+                "value": "1"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ef4c6502-8fa8-4259-8ca0-106e015dd310",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "type": "string",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+                "key": "token"
+              }
+            ]
+          }
+        },
+        "response": {
+          "id": "f9216904-409d-4f59-bb5e-78c8bd427c4d",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "236"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"ec-kaEnoabvU4w7gP0Ji34Tby8GjZ0\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              101,
+              53,
+              34,
+              44,
+              34,
+              114,
+              111,
+              111,
+              109,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              100,
+              98,
+              34,
+              44,
+              34,
+              115,
+              101,
+              110,
+              100,
+              101,
+              114,
+              73,
+              100,
+              34,
+              58,
+              34,
+              54,
+              97,
+              102,
+              52,
+              98,
+              101,
+              51,
+              98,
+              100,
+              52,
+              57,
+              98,
+              100,
+              57,
+              102,
+              56,
+              57,
+              99,
+              57,
+              51,
+              99,
+              97,
+              99,
+              101,
+              34,
+              44,
+              34,
+              99,
+              111,
+              110,
+              116,
+              101,
+              110,
+              116,
+              34,
+              58,
+              34,
+              65,
+              110,
+              100,
+              32,
+              97,
+              32,
+              115,
+              101,
+              99,
+              111,
+              110,
+              100,
+              32,
+              111,
+              110,
+              101,
+              44,
+              32,
+              102,
+              111,
+              114,
+              32,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              116,
+              105,
+              111,
+              110,
+              46,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              49,
+              45,
+              49,
+              49,
+              84,
+              49,
+              57,
+              58,
+              49,
+              50,
+              58,
+              53,
+              57,
+              46,
+              56,
+              52,
+              51,
+              90,
+              34,
+              44,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              115,
+              101,
+              110,
+              116,
+              34,
+              125,
+              93,
+              44,
+              34,
+              110,
+              101,
+              120,
+              116,
+              80,
+              97,
+              103,
+              101,
+              34,
+              58,
+              50,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 4,
+          "responseSize": 236
+        },
+        "id": "34c16056-a67e-40dc-b070-8ff320baff1e",
+        "assertions": [
+          {
+            "assertion": "status is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "one message and nextPage 2",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "6e4fc799-1dd5-4b6e-91b6-17dfabc9c6ed",
+          "length": 15,
+          "cycles": 1,
+          "position": 10,
+          "iteration": 0,
+          "httpRequestId": "688bc997-b661-4144-923e-f00e46457dbc"
+        },
+        "item": {
+          "id": "e1eeadb4-a59a-4beb-8ae5-192cced00b65",
+          "name": "Get DM history without token (SEC-004, TC-04)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "noauth",
+              "noauth": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0cc1a6dc-df46-4e37-ad1e-ae9d052a233e",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                ],
+                "_lastExecutionId": "3ab4b3c5-90d7-45c2-9ccf-0ed88ae12f1c"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "6af4be3bd49bd9f89c93cadb"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "702eef87-8de0-4e14-9813-679d65a070ee",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "noauth",
+            "noauth": []
+          }
+        },
+        "response": {
+          "id": "d6714c98-f079-4eb4-a53c-e326deede333",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "72"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"48-z2SOAgmTEXaD9z1UyFohyzJDmeo\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              85,
+              84,
+              72,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              95,
+              84,
+              79,
+              75,
+              69,
+              78,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              77,
+              105,
+              115,
+              115,
+              105,
+              110,
+              103,
+              32,
+              98,
+              101,
+              97,
+              114,
+              101,
+              114,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 72
+        },
+        "id": "e1eeadb4-a59a-4beb-8ae5-192cced00b65",
+        "assertions": [
+          {
+            "assertion": "status is 401",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is AUTH_INVALID_TOKEN",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "12bd1393-c411-4df9-b8dc-cb18b44c4d9c",
+          "length": 15,
+          "cycles": 1,
+          "position": 11,
+          "iteration": 0,
+          "httpRequestId": "44e6faf5-89e2-47bf-8839-e6d701e86c16"
+        },
+        "item": {
+          "id": "25d37266-5112-4854-8d7c-f1a027320ade",
+          "name": "Get DM history with a tampered token (SEC-004)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "type": "string",
+                  "value": "{{dmToken}}x",
+                  "key": "token"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5db74008-7a81-4ea1-943b-66e9a1e58145",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error code is AUTH_INVALID_TOKEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_INVALID_TOKEN'));"
+                ],
+                "_lastExecutionId": "873658dd-ef07-43a9-a1c0-2aadd158ca35"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "6af4be3bd49bd9f89c93cadb"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8x",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "240f1f4c-db61-403a-b644-c1b4d36382d3",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "type": "string",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8x",
+                "key": "token"
+              }
+            ]
+          }
+        },
+        "response": {
+          "id": "f08546ba-3209-4d6b-8a83-6182f294275b",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "65"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"41-Xzr9ruCeeaIhBjPD1r99+YEHtGM\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              85,
+              84,
+              72,
+              95,
+              73,
+              78,
+              86,
+              65,
+              76,
+              73,
+              68,
+              95,
+              84,
+              79,
+              75,
+              69,
+              78,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              73,
+              110,
+              118,
+              97,
+              108,
+              105,
+              100,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 1,
+          "responseSize": 65
+        },
+        "id": "25d37266-5112-4854-8d7c-f1a027320ade",
+        "assertions": [
+          {
+            "assertion": "status is 401",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is AUTH_INVALID_TOKEN",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "3c1e1955-63c0-4052-9b61-5ea0f994681c",
+          "length": 15,
+          "cycles": 1,
+          "position": 12,
+          "iteration": 0,
+          "httpRequestId": "d82363cf-c3a3-47cc-b37d-1b45ba8ed66a"
+        },
+        "item": {
+          "id": "eb143eef-d324-4f17-aacc-c5befa5564a0",
+          "name": "Get DM history of a conversation I am not in (FR-015)",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "type": "string",
+                  "value": "{{token}}",
+                  "key": "token"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2efbc5e7-31c9-45e2-9401-2b9a9ee627f7",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('error code is AUTH_FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_FORBIDDEN'));"
+                ],
+                "_lastExecutionId": "8b303564-b45a-4066-a558-4494c9723db1"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "6af4be3bd49bd9f89c93cadb"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzZGQ0OWJkOWY4OWM5M2NhZTkiLCJ1c2VybmFtZSI6InBtX213Y2h5MjZqY2JncCIsImlhdCI6MTc5NDQyNDM4MSwiZXhwIjoxNzk0NDY3NTgxfQ.xTz6u6hbjdoybCCEPX2o7STIwjW2AEhr4Os0ly1L6vM",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "fe9b8533-5492-4f90-ba73-4628a09aebd0",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "type": "string",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzZGQ0OWJkOWY4OWM5M2NhZTkiLCJ1c2VybmFtZSI6InBtX213Y2h5MjZqY2JncCIsImlhdCI6MTc5NDQyNDM4MSwiZXhwIjoxNzk0NDY3NTgxfQ.xTz6u6hbjdoybCCEPX2o7STIwjW2AEhr4Os0ly1L6vM",
+                "key": "token"
+              }
+            ]
+          }
+        },
+        "response": {
+          "id": "a1c7a4ae-ac62-4fc1-8eb7-978ab271a643",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "94"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"5e-1kEF0wPGCy5TW586xEkfs0cr6eE\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              85,
+              84,
+              72,
+              95,
+              70,
+              79,
+              82,
+              66,
+              73,
+              68,
+              68,
+              69,
+              78,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              89,
+              111,
+              117,
+              32,
+              97,
+              114,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              97,
+              32,
+              112,
+              97,
+              114,
+              116,
+              105,
+              99,
+              105,
+              112,
+              97,
+              110,
+              116,
+              32,
+              105,
+              110,
+              32,
+              116,
+              104,
+              105,
+              115,
+              32,
+              99,
+              111,
+              110,
+              118,
+              101,
+              114,
+              115,
+              97,
+              116,
+              105,
+              111,
+              110,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 94
+        },
+        "id": "eb143eef-d324-4f17-aacc-c5befa5564a0",
+        "assertions": [
+          {
+            "assertion": "status is 403",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is AUTH_FORBIDDEN",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "dd13b6b5-ff7c-4f7d-bc2c-2b7f9f80075f",
+          "length": 15,
+          "cycles": 1,
+          "position": 13,
+          "iteration": 0,
+          "httpRequestId": "eaf75741-0f9e-47c6-b919-c8e537e06723"
+        },
+        "item": {
+          "id": "f1a39425-3399-4a97-a984-83b4917babf8",
+          "name": "Get DM history with bad pageSize",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "{{conversationId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "zero"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "type": "string",
+                  "value": "{{dmToken}}",
+                  "key": "token"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "6628b128-577a-4f48-a513-f5491dc2b585",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                ],
+                "_lastExecutionId": "b8106327-0e05-4b54-855e-4d780ba0b7f5"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "6af4be3bd49bd9f89c93cadb"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [
+              {
+                "key": "pageSize",
+                "value": "zero"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "05b65b68-2863-4730-af6d-6d99a8e80fc6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "type": "string",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+                "key": "token"
+              }
+            ]
+          }
+        },
+        "response": {
+          "id": "137c382c-5a00-49ce-90d8-5292c345b62c",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "86"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"56-hxcKWrBpWQAk3RYqHUNYXILIoYk\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              73,
+              68,
+              65,
+              84,
+              73,
+              79,
+              78,
+              95,
+              70,
+              65,
+              73,
+              76,
+              69,
+              68,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              112,
+              97,
+              103,
+              101,
+              83,
+              105,
+              122,
+              101,
+              32,
+              109,
+              117,
+              115,
+              116,
+              32,
+              98,
+              101,
+              32,
+              97,
+              32,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              101,
+              32,
+              105,
+              110,
+              116,
+              101,
+              103,
+              101,
+              114,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 86
+        },
+        "id": "f1a39425-3399-4a97-a984-83b4917babf8",
+        "assertions": [
+          {
+            "assertion": "status is 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is VALIDATION_FAILED",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "8ce166bc-4f8a-4f96-ad6f-4a395e4cfae0",
+          "length": 15,
+          "cycles": 1,
+          "position": 14,
+          "iteration": 0,
+          "httpRequestId": "4316e106-819c-442f-91c9-80532fdf4116"
+        },
+        "item": {
+          "id": "e74560f1-012c-46b6-b156-e38d1b961e23",
+          "name": "Get DM history with a malformed id",
+          "request": {
+            "url": {
+              "path": [
+                "api",
+                "messages",
+                "not-an-id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "type": "string",
+                  "value": "{{dmToken}}",
+                  "key": "token"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "19b98b36-3546-402e-8473-625b8e43f4fa",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error code is VALIDATION_FAILED', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_FAILED'));"
+                ],
+                "_lastExecutionId": "4bd310e1-8cc0-4d8f-b932-5b349e5cb660"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "49911",
+            "path": [
+              "api",
+              "messages",
+              "not-an-id"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c8d17600-c37b-4646-b65d-436ea3c45680",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:49911",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "type": "string",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWY0YmUzYmQ0OWJkOWY4OWM5M2NhY2UiLCJ1c2VybmFtZSI6ImRtX2FfbXdjaHkwcmQiLCJpYXQiOjE3OTQ0MjQzODIsImV4cCI6MTc5NDQ2NzU4Mn0.SEBAQcAm1yhCzHB17DDQ-7h_b2LLlrlAZ9usv-gIiw8",
+                "key": "token"
+              }
+            ]
+          }
+        },
+        "response": {
+          "id": "5e738f60-ceb7-4792-8f86-e92990e757ad",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Vary",
+              "value": "Origin"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "84"
+            },
+            {
+              "key": "ETag",
+              "value": "W/\"54-zlj8U1wyn0XT/V00u25qqj2vqiE\""
+            },
+            {
+              "key": "Date",
+              "value": "Wed, 11 Nov 2026 19:13:02 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              123,
+              34,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              73,
+              68,
+              65,
+              84,
+              73,
+              79,
+              78,
+              95,
+              70,
+              65,
+              73,
+              76,
+              69,
+              68,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              99,
+              111,
+              110,
+              118,
+              101,
+              114,
+              115,
+              97,
+              116,
+              105,
+              111,
+              110,
+              73,
+              100,
+              32,
+              109,
+              117,
+              115,
+              116,
+              32,
+              98,
+              101,
+              32,
+              97,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              32,
+              105,
+              100,
+              34,
+              125,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 84
+        },
+        "id": "e74560f1-012c-46b6-b156-e38d1b961e23",
+        "assertions": [
+          {
+            "assertion": "status is 400",
+            "skipped": false
+          },
+          {
+            "assertion": "error code is VALIDATION_FAILED",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1920
+    },
+    "failures": [],
+    "error": null
+  }
+}

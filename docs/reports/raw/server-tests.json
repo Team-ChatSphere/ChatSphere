@@ -1,0 +1,1122 @@
+{
+  "numTotalTests": 195,
+  "numPassedTests": 195,
+  "numFailedTests": 0,
+  "testResults": [
+    {
+      "name": "server/tests/models/Room.test.js",
+      "assertionResults": [
+        {
+          "fullName": "Room (CS-17) stores the contract fields and trims the unique name",
+          "status": "passed",
+          "duration": 34
+        },
+        {
+          "fullName": "Room (CS-17) requires a name, type, and creator, limits the name to 50 characters, and validates type",
+          "status": "passed",
+          "duration": 13
+        },
+        {
+          "fullName": "Room (CS-17) enforces unique names",
+          "status": "passed",
+          "duration": 11
+        },
+        {
+          "fullName": "RoomMembership (CS-17) defaults to member and allows admin",
+          "status": "passed",
+          "duration": 17
+        },
+        {
+          "fullName": "RoomMembership (CS-17) enforces valid roles and one membership per room/user",
+          "status": "passed",
+          "duration": 23
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/messageLifecycle.test.js",
+      "assertionResults": [
+        {
+          "fullName": "sanitised storage (SEC-003) a script payload is stored escaped",
+          "status": "passed",
+          "duration": 52
+        },
+        {
+          "fullName": "sanitised storage (SEC-003) the stored (escaped) form must still fit 2000 characters",
+          "status": "passed",
+          "duration": 5
+        },
+        {
+          "fullName": "status lifecycle (FR-011) sent → delivered only once, and never backwards",
+          "status": "passed",
+          "duration": 50
+        },
+        {
+          "fullName": "status lifecycle (FR-011) the recipient can mark read; a repeat is a no-op",
+          "status": "passed",
+          "duration": 18
+        },
+        {
+          "fullName": "status lifecycle (FR-011) the sender cannot mark their own message read",
+          "status": "passed",
+          "duration": 9
+        },
+        {
+          "fullName": "status lifecycle (FR-011) outsiders and unknown messages get AUTH_FORBIDDEN",
+          "status": "passed",
+          "duration": 17
+        },
+        {
+          "fullName": "offline delivery (FR-009) pendingFor returns only undelivered DMs from others, oldest first",
+          "status": "passed",
+          "duration": 40
+        },
+        {
+          "fullName": "typing targets (FR-010) everyone in the conversation except the typer",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "typing targets (FR-010) non-members are rejected",
+          "status": "passed",
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/messageHistory.test.js",
+      "assertionResults": [
+        {
+          "fullName": "getHistory (FR-018, TC-10) returns messages newest first with the wire shape",
+          "status": "passed",
+          "duration": 61
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) paginates and reports nextPage until the last page",
+          "status": "passed",
+          "duration": 25
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) a page past the end is empty",
+          "status": "passed",
+          "duration": 14
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) only returns messages from the requested conversation",
+          "status": "passed",
+          "duration": 21
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) caps pageSize at 100",
+          "status": "passed",
+          "duration": 28
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) rejects a non-participant with AUTH_FORBIDDEN",
+          "status": "passed",
+          "duration": 11
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) rejects malformed conversationId with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) rejects page 0 with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "getHistory (FR-018, TC-10) rejects non-numeric pageSize with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/messagingService.test.js",
+      "assertionResults": [
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) persists the message in the direct room with status sent",
+          "status": "passed",
+          "duration": 57
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) looks up the direct room for the two participants",
+          "status": "passed",
+          "duration": 12
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects a DM to yourself (TC-05)",
+          "status": "passed",
+          "duration": 9
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects missing toUserId with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects malformed toUserId with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 9
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects empty content with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects non-string content with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 12
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects content over 2000 chars with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 13
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects empty idempotency key with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 8
+        },
+        {
+          "fullName": "sendDirectMessage (FR-007, FR-017) rejects an unknown recipient with NOT_FOUND",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "idempotency (CS-11, SAD 3.4.2) the same key sent twice stores one message and returns the original",
+          "status": "passed",
+          "duration": 14
+        },
+        {
+          "fullName": "idempotency (CS-11, SAD 3.4.2) concurrent retries with the same key still store one message",
+          "status": "passed",
+          "duration": 21
+        },
+        {
+          "fullName": "idempotency (CS-11, SAD 3.4.2) different senders may use the same key",
+          "status": "passed",
+          "duration": 23
+        },
+        {
+          "fullName": "idempotency (CS-11, SAD 3.4.2) messages without a key are never deduplicated",
+          "status": "passed",
+          "duration": 13
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/directMessagingIntegration.test.js",
+      "assertionResults": [
+        {
+          "fullName": "DM send + history with real rooms (FR-007, FR-017, FR-018) both participants see the conversation newest first; a third user is forbidden",
+          "status": "passed",
+          "duration": 132
+        },
+        {
+          "fullName": "DM send + history with real rooms (FR-007, FR-017, FR-018) replies land in the same conversation in either direction",
+          "status": "passed",
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "name": "server/tests/routes/auth.test.js",
+      "assertionResults": [
+        {
+          "fullName": "POST /api/auth/register 201 { userId }",
+          "status": "passed",
+          "duration": 131
+        },
+        {
+          "fullName": "POST /api/auth/register 400 VALIDATION_FAILED for a duplicate email (TC-02)",
+          "status": "passed",
+          "duration": 50
+        },
+        {
+          "fullName": "POST /api/auth/login 200 { token } for valid credentials (TC-03)",
+          "status": "passed",
+          "duration": 44
+        },
+        {
+          "fullName": "POST /api/auth/login 401 for a wrong password",
+          "status": "passed",
+          "duration": 39
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/restoreRoom.test.js",
+      "assertionResults": [
+        {
+          "fullName": "restoreRoom (D-07) re-attaches a current member",
+          "status": "passed",
+          "duration": 57
+        },
+        {
+          "fullName": "restoreRoom (D-07) after leaving, restore does not recreate the membership",
+          "status": "passed",
+          "duration": 50
+        },
+        {
+          "fullName": "restoreRoom (D-07) an unknown room is not restored",
+          "status": "passed",
+          "duration": 7
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/directRoom.test.js",
+      "assertionResults": [
+        {
+          "fullName": "getOrCreateDirectRoom (CS-10, FR-017) creates a direct room named by the sorted ids, with both users as members",
+          "status": "passed",
+          "duration": 61
+        },
+        {
+          "fullName": "getOrCreateDirectRoom (CS-10, FR-017) returns the same room whichever user starts it, without duplicating memberships",
+          "status": "passed",
+          "duration": 33
+        },
+        {
+          "fullName": "getOrCreateDirectRoom (CS-10, FR-017) concurrent first messages still produce one room",
+          "status": "passed",
+          "duration": 49
+        },
+        {
+          "fullName": "getOrCreateDirectRoom (CS-10, FR-017) different pairs get different rooms",
+          "status": "passed",
+          "duration": 23
+        },
+        {
+          "fullName": "getOrCreateDirectRoom (CS-10, FR-017) rejects a DM with yourself and malformed ids",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "getOrCreateDirectRoom (CS-10, FR-017) a direct room cannot be joined as a group (Room service rule)",
+          "status": "passed",
+          "duration": 29
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/authService.test.js",
+      "assertionResults": [
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) creates the user and returns its id",
+          "status": "passed",
+          "duration": 70
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) stores only a bcrypt hash, never the plaintext password (SEC-001)",
+          "status": "passed",
+          "duration": 20
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects a duplicate username (any case) (TC-02)",
+          "status": "passed",
+          "duration": 28
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects a duplicate email (any case) (TC-02)",
+          "status": "passed",
+          "duration": 34
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) two concurrent registrations differing only in case create exactly one account",
+          "status": "passed",
+          "duration": 42
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects short password with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects password over 72 chars with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 14
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects bad email with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 11
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects short username with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 5
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects username with spaces with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "register (FR-001, FR-002, SEC-001, TC-01, TC-02) rejects missing fields with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "login (FR-003, TC-03) logs in with username and returns a signed JWT with sub + username",
+          "status": "passed",
+          "duration": 20
+        },
+        {
+          "fullName": "login (FR-003, TC-03) logs in with username in another case and returns a signed JWT with sub + username",
+          "status": "passed",
+          "duration": 23
+        },
+        {
+          "fullName": "login (FR-003, TC-03) logs in with email and returns a signed JWT with sub + username",
+          "status": "passed",
+          "duration": 20
+        },
+        {
+          "fullName": "login (FR-003, TC-03) rejects wrong password with the same 401 message and logs it (SEC-006)",
+          "status": "passed",
+          "duration": 21
+        },
+        {
+          "fullName": "login (FR-003, TC-03) rejects unknown user with the same 401 message and logs it (SEC-006)",
+          "status": "passed",
+          "duration": 17
+        },
+        {
+          "fullName": "login (FR-003, TC-03) rejects missing credentials with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 13
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) accepts a valid token",
+          "status": "passed",
+          "duration": 18
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) rejects a missing token with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 23
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) rejects a malformed token with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) rejects a signed with another secret token with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) rejects a expired token with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) rejects a missing claims token with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) rejects a alg none token with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) authenticate also requires the user to still exist",
+          "status": "passed",
+          "duration": 33
+        },
+        {
+          "fullName": "verifyToken (FR-004, SEC-004, TC-04) a tampered payload is rejected",
+          "status": "passed",
+          "duration": 19
+        }
+      ]
+    },
+    {
+      "name": "server/tests/services/roomService.test.js",
+      "assertionResults": [
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) creates a group and makes its creator the first admin",
+          "status": "passed",
+          "duration": 53
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) rejects empty name",
+          "status": "passed",
+          "duration": 25
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) rejects name over 50 characters",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) rejects direct-room name",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) rejects a duplicate group name with VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 15
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) a user joins a group once and receives member role",
+          "status": "passed",
+          "duration": 35
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) direct rooms cannot be joined or left",
+          "status": "passed",
+          "duration": 14
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) a group member can leave and membership is removed",
+          "status": "passed",
+          "duration": 39
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) an admin can promote a room member and remove a room member",
+          "status": "passed",
+          "duration": 56
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) non-admins cannot promote or remove members",
+          "status": "passed",
+          "duration": 38
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) admin actions do not reveal whether an unjoined room id exists",
+          "status": "passed",
+          "duration": 10
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) the last admin cannot leave or be removed",
+          "status": "passed",
+          "duration": 47
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) concurrent self-removals cannot remove every admin",
+          "status": "passed",
+          "duration": 62
+        },
+        {
+          "fullName": "room lifecycle (CS-18, CS-19) a member list includes role and safe public user fields",
+          "status": "passed",
+          "duration": 20
+        },
+        {
+          "fullName": "group messages (CS-20, CS-21) rejects a non-member before persisting a message",
+          "status": "passed",
+          "duration": 19
+        },
+        {
+          "fullName": "group messages (CS-20, CS-21) persists a member message with the shared Message shape",
+          "status": "passed",
+          "duration": 21
+        },
+        {
+          "fullName": "group messages (CS-20, CS-21) a retry with the same idempotency key returns one saved message",
+          "status": "passed",
+          "duration": 33
+        },
+        {
+          "fullName": "group messages (CS-20, CS-21) validates message content and room ids",
+          "status": "passed",
+          "duration": 6
+        }
+      ]
+    },
+    {
+      "name": "server/tests/sockets/messagingHandlers.test.js",
+      "assertionResults": [
+        {
+          "fullName": "message:send for DMs (FR-007, FR-008) delivers message:new to both participants and acks sent after persisting",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "message:send for DMs (FR-007, FR-008) a duplicate send is acked again but not re-delivered",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "message:send for DMs (FR-007, FR-008) a service error is sent on the error event and nothing is delivered",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "message:send for DMs (FR-007, FR-008) an unexpected error is reported as INTERNAL_ERROR without detail",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "registerMessagingHandlers routes { roomId } payloads to the Room service handler",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "registerMessagingHandlers routes { toUserId } payloads to the DM handler",
+          "status": "passed",
+          "duration": 0
+        }
+      ]
+    },
+    {
+      "name": "server/tests/middleware/jwtAuth.test.js",
+      "assertionResults": [
+        {
+          "fullName": "REST jwtAuth (CS-07) a valid bearer token for an existing user sets req.user",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "REST jwtAuth (CS-07) no header → AUTH_INVALID_TOKEN (401)",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "REST jwtAuth (CS-07) wrong scheme → AUTH_INVALID_TOKEN (401)",
+          "status": "passed",
+          "duration": 0
+        },
+        {
+          "fullName": "REST jwtAuth (CS-07) bearer without token → AUTH_INVALID_TOKEN (401)",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "REST jwtAuth (CS-07) bad token → AUTH_INVALID_TOKEN (401)",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "REST jwtAuth (CS-07) token of a user that no longer exists → AUTH_INVALID_TOKEN (401)",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Socket.IO handshake auth (CS-07) a valid token sets socket.user",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Socket.IO handshake auth (CS-07) a bad, missing or deleted-user token refuses the connection with AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 1
+        }
+      ]
+    },
+    {
+      "name": "server/tests/e2e/roomSearch.test.js",
+      "assertionResults": [
+        {
+          "fullName": "room history is mounted behind JWT and search returns users and group rooms only",
+          "status": "passed",
+          "duration": 459
+        }
+      ]
+    },
+    {
+      "name": "server/tests/models/Message.test.js",
+      "assertionResults": [
+        {
+          "fullName": "Message model (FR-017) a valid message passes validation with server defaults",
+          "status": "passed",
+          "duration": 5
+        },
+        {
+          "fullName": "Message model (FR-017) room_id is required",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "Message model (FR-017) sender_id is required",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Message model (FR-017) content is required",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Message model (FR-017) content longer than 2000 chars is rejected",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Message model (FR-017) content of exactly 2000 chars is accepted",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Message model (FR-017) whitespace-only content is rejected",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "Message model (FR-017) status must be sent, delivered or read",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "Message model (FR-017) declares a newest-first history index and a unique per-sender idempotency index",
+          "status": "passed",
+          "duration": 1
+        }
+      ]
+    },
+    {
+      "name": "server/tests/e2e/presence.test.js",
+      "assertionResults": [
+        {
+          "fullName": "presence is broadcast to DM contacts and remains online until the last socket disconnects",
+          "status": "passed",
+          "duration": 417
+        }
+      ]
+    },
+    {
+      "name": "server/tests/utils/sanitize.test.js",
+      "assertionResults": [
+        {
+          "fullName": "sanitizeContent (SEC-003, TC-09) escapes HTML so a script payload can never become markup",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "sanitizeContent (SEC-003, TC-09) escapes attribute-breaking quotes and ampersands",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "sanitizeContent (SEC-003, TC-09) strips control characters but keeps newlines and tabs",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "sanitizeContent (SEC-003, TC-09) leaves ordinary text alone apart from trimming",
+          "status": "passed",
+          "duration": 1
+        }
+      ]
+    },
+    {
+      "name": "server/tests/sockets/rateLimit.test.js",
+      "assertionResults": [
+        {
+          "fullName": "token bucket (SEC-005) allows a burst up to capacity, then refills over time",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "rateLimitMiddleware over the limit: no next(), RATE_LIMITED on ack and error event, logged once per burst",
+          "status": "passed",
+          "duration": 5
+        },
+        {
+          "fullName": "rateLimitMiddleware other events are never limited",
+          "status": "passed",
+          "duration": 0
+        }
+      ]
+    },
+    {
+      "name": "server/tests/config.test.js",
+      "assertionResults": [
+        {
+          "fullName": "config from environment (SRS 6.4) reads values and applies defaults",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "config from environment (SRS 6.4) fails fast when MONGO_URI is missing",
+          "status": "passed",
+          "duration": 12
+        },
+        {
+          "fullName": "config from environment (SRS 6.4) fails fast when JWT_SECRET is missing",
+          "status": "passed",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "name": "server/tests/sockets/roomHandlers.test.js",
+      "assertionResults": [
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:create creates and joins the creator to the room socket channel",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:join joins and broadcasts the membership event",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:restore re-attaches only a confirmed member",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:restore leaves the channel and acknowledges a former member",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:leave removes the socket from the channel and broadcasts membership change",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:promote delegates authorization and broadcasts the new role",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) room:removeMember evicts the target user from every socket in the room",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "room socket handlers (CS-18, CS-19) a forbidden admin action returns AUTH_FORBIDDEN through the ack",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "onRoomMessage (CS-20, CS-21) persists and broadcasts group messages to the room channel",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "onRoomMessage (CS-20, CS-21) a forbidden sender receives an error and the room gets no broadcast",
+          "status": "passed",
+          "duration": 1
+        }
+      ]
+    },
+    {
+      "name": "server/tests/routes/messages.test.js",
+      "assertionResults": [
+        {
+          "fullName": "GET /api/messages/:conversationId (FR-018) 200 with { messages, nextPage } and passes the query through",
+          "status": "passed",
+          "duration": 52
+        },
+        {
+          "fullName": "GET /api/messages/:conversationId (FR-018) 401 without a token never reaches the service",
+          "status": "passed",
+          "duration": 17
+        },
+        {
+          "fullName": "GET /api/messages/:conversationId (FR-018) AUTH_FORBIDDEN maps to HTTP 403 with the error body",
+          "status": "passed",
+          "duration": 10
+        },
+        {
+          "fullName": "GET /api/messages/:conversationId (FR-018) VALIDATION_FAILED maps to HTTP 400 with the error body",
+          "status": "passed",
+          "duration": 15
+        },
+        {
+          "fullName": "GET /api/messages/:conversationId (FR-018) an unexpected error is a 500 INTERNAL_ERROR without detail",
+          "status": "passed",
+          "duration": 9
+        }
+      ]
+    },
+    {
+      "name": "server/tests/e2e/rateLimit.test.js",
+      "assertionResults": [
+        {
+          "fullName": "a flood of message:send is cut off with RATE_LIMITED and the excess is never stored",
+          "status": "passed",
+          "duration": 373
+        },
+        {
+          "fullName": "the limit is per connection: a fresh connection gets its own bucket",
+          "status": "passed",
+          "duration": 201
+        }
+      ]
+    },
+    {
+      "name": "server/tests/app.test.js",
+      "assertionResults": [
+        {
+          "fullName": "Express app skeleton (CS-01) GET /api/health is 200",
+          "status": "passed",
+          "duration": 52
+        },
+        {
+          "fullName": "Express app skeleton (CS-01) unknown routes return 404 in the shared error shape (SAD 3.3)",
+          "status": "passed",
+          "duration": 19
+        },
+        {
+          "fullName": "Express app skeleton (CS-01) malformed JSON is a 400 VALIDATION_FAILED",
+          "status": "passed",
+          "duration": 26
+        },
+        {
+          "fullName": "Express app skeleton (CS-01) routes registered by services are mounted, and their AppErrors keep their status",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "Express app skeleton (CS-01) unexpected errors are a 500 INTERNAL_ERROR without detail",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "Express app skeleton (CS-01) CORS allows the configured client origin only",
+          "status": "passed",
+          "duration": 11
+        }
+      ]
+    },
+    {
+      "name": "server/tests/server.test.js",
+      "assertionResults": [
+        {
+          "fullName": "HTTP + Socket.IO server (CS-01) detects lost sockets within the five-second presence window",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "HTTP + Socket.IO server (CS-01) a client connects over WebSocket and reaches the registered socket handlers",
+          "status": "passed",
+          "duration": 28
+        },
+        {
+          "fullName": "HTTP + Socket.IO server (CS-01) registerSockets can reject a handshake (where the CS-07 JWT check plugs in)",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "HTTP + Socket.IO server (CS-01) REST and Socket.IO share one port",
+          "status": "passed",
+          "duration": 25
+        }
+      ]
+    },
+    {
+      "name": "server/tests/routes/users.test.js",
+      "assertionResults": [
+        {
+          "fullName": "search returns public user fields and excludes the signed-in user",
+          "status": "passed",
+          "duration": 29
+        },
+        {
+          "fullName": "search is empty for short queries and rejects oversized queries",
+          "status": "passed",
+          "duration": 24
+        }
+      ]
+    },
+    {
+      "name": "server/tests/routes/rooms.test.js",
+      "assertionResults": [
+        {
+          "fullName": "room REST routes (CS-40, CS-41) GET /api/rooms/:roomId/messages returns paginated history",
+          "status": "passed",
+          "duration": 43
+        },
+        {
+          "fullName": "room REST routes (CS-40, CS-41) room history rejects missing auth before calling the service",
+          "status": "passed",
+          "duration": 8
+        },
+        {
+          "fullName": "room REST routes (CS-40, CS-41) room history preserves 403 membership errors",
+          "status": "passed",
+          "duration": 7
+        },
+        {
+          "fullName": "room REST routes (CS-40, CS-41) GET /api/rooms/:roomId/members returns membership data",
+          "status": "passed",
+          "duration": 5
+        },
+        {
+          "fullName": "room REST routes (CS-40, CS-41) room search returns only group room names and ids",
+          "status": "passed",
+          "duration": 5
+        }
+      ]
+    },
+    {
+      "name": "server/tests/models/User.test.js",
+      "assertionResults": [
+        {
+          "fullName": "User model (CS-04) stores a lower-cased email and defaults to offline",
+          "status": "passed",
+          "duration": 4
+        },
+        {
+          "fullName": "User model (CS-04) rejects a missing/invalid username",
+          "status": "passed",
+          "duration": 3
+        },
+        {
+          "fullName": "User model (CS-04) rejects a missing/invalid email",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "User model (CS-04) rejects a missing/invalid password_hash",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "User model (CS-04) rejects a missing/invalid username over 30 chars",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "User model (CS-04) rejects a missing/invalid email over 100 chars",
+          "status": "passed",
+          "duration": 1
+        },
+        {
+          "fullName": "User model (CS-04) rejects a missing/invalid unknown status",
+          "status": "passed",
+          "duration": 2
+        },
+        {
+          "fullName": "User model (CS-04) username and email are unique",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "User model (CS-04) usernames are unique ignoring case, enforced by the database index itself",
+          "status": "passed",
+          "duration": 6
+        },
+        {
+          "fullName": "User model (CS-04) the password hash is never serialised",
+          "status": "passed",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "name": "server/tests/e2e/messageLifecycle.test.js",
+      "assertionResults": [
+        {
+          "fullName": "offline delivery (FR-009, TC-06) a DM sent while Bob is offline arrives when he connects, and Alice sees it delivered",
+          "status": "passed",
+          "duration": 370
+        },
+        {
+          "fullName": "ticks: sent → delivered → read (FR-011) Bob online: Alice gets sent then delivered, then read when Bob reads it",
+          "status": "passed",
+          "duration": 198
+        },
+        {
+          "fullName": "ticks: sent → delivered → read (FR-011) Alice cannot mark her own message read",
+          "status": "passed",
+          "duration": 134
+        },
+        {
+          "fullName": "typing indicator (FR-010) Bob sees Alice start and stop typing in their DM; Carol sees nothing",
+          "status": "passed",
+          "duration": 300
+        },
+        {
+          "fullName": "typing indicator (FR-010) typing in a room reaches the other members",
+          "status": "passed",
+          "duration": 101
+        },
+        {
+          "fullName": "stored XSS (SEC-003, TC-09) a script payload is stored and returned escaped, in DMs and rooms",
+          "status": "passed",
+          "duration": 95
+        }
+      ]
+    },
+    {
+      "name": "server/tests/e2e/chatFlow.test.js",
+      "assertionResults": [
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) REST without a token is 401 AUTH_INVALID_TOKEN",
+          "status": "passed",
+          "duration": 279
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) the WebSocket handshake is refused with no token",
+          "status": "passed",
+          "duration": 98
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) the WebSocket handshake is refused with an expired token",
+          "status": "passed",
+          "duration": 70
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) the WebSocket handshake is refused with a token signed with another key",
+          "status": "passed",
+          "duration": 74
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) the WebSocket handshake is refused with a correctly signed token for a user that does not exist",
+          "status": "passed",
+          "duration": 85
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) REST refuses a correctly signed token for a user that does not exist",
+          "status": "passed",
+          "duration": 80
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) a token stops working on both channels once its user is deleted",
+          "status": "passed",
+          "duration": 124
+        },
+        {
+          "fullName": "auth on both channels (FR-004, SEC-004, TC-04) a valid token connects and identifies the user",
+          "status": "passed",
+          "duration": 93
+        },
+        {
+          "fullName": "direct messages, live (FR-007, FR-008, FR-017, TC-05) Bob receives Alice’s DM in real time, Alice gets sent + ack",
+          "status": "passed",
+          "duration": 114
+        },
+        {
+          "fullName": "direct messages, live (FR-007, FR-008, FR-017, TC-05) delivery latency is well under the 300 ms target on a quiet server (NFR-001 smoke)",
+          "status": "passed",
+          "duration": 84
+        },
+        {
+          "fullName": "direct messages, live (FR-007, FR-008, FR-017, TC-05) sending to yourself is rejected (TC-05 negative)",
+          "status": "passed",
+          "duration": 67
+        },
+        {
+          "fullName": "DM history over REST (FR-018, TC-10) after a \"reload\", both users get the conversation newest first; others get 403",
+          "status": "passed",
+          "duration": 137
+        },
+        {
+          "fullName": "rooms (FR-012 to FR-015, TC-07) Alice creates a room, Bob joins, both see each other’s messages live; outsiders can’t post",
+          "status": "passed",
+          "duration": 126
+        },
+        {
+          "fullName": "rooms (FR-012 to FR-015, TC-07) after reconnecting, a member is back in the room channel automatically",
+          "status": "passed",
+          "duration": 94
+        }
+      ]
+    }
+  ]
+}

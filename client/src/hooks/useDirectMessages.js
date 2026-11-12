@@ -3,6 +3,12 @@ import { apiRequest } from '../api/client.js';
 
 export const PAGE_SIZE = 30;
 const SEND_TIMEOUT_MS = 10000;
+const TYPING_IDLE_MS = 3000; // stop "typing" after this long without a keystroke (FR-010)
+const TYPING_STALE_MS = 4000; // hide the peer's indicator if no update arrives
+
+// Server statuses only move forward (FR-011); events can arrive out of order.
+const STATUS_RANK = { sent: 1, delivered: 2, read: 3 };
+const laterStatus = (a, b) => ((STATUS_RANK[a] || 0) > (STATUS_RANK[b] || 0) ? a : b);
 
 const newKey = () =>
   globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -18,7 +24,9 @@ export function upsertMessage(list, msg) {
   );
   if (i === -1) return [...list, msg].sort((a, b) => sortTime(a) - sortTime(b));
   const next = [...list];
-  next[i] = { ...next[i], ...msg };
+  const merged = { ...next[i], ...msg };
+  if (STATUS_RANK[next[i].status] && STATUS_RANK[msg.status]) merged.status = laterStatus(next[i].status, msg.status);
+  next[i] = merged;
   return next;
 }
 
@@ -35,6 +43,11 @@ export function useDirectMessages({ socket, token, me, peer, conversationId, onC
   const [error, setError] = useState('');
   const roomRef = useRef(roomId);
   const sentKeys = useRef(new Set());
+  const readReported = useRef(new Set());
+  const [peerTyping, setPeerTyping] = useState(false);
+  const typingSent = useRef(false);
+  const typingStopTimer = useRef(null);
+  const peerTypingTimer = useRef(null);
   const onConversationIdRef = useRef(onConversationId);
   roomRef.current = roomId;
   onConversationIdRef.current = onConversationId;
@@ -94,24 +107,68 @@ export function useDirectMessages({ socket, token, me, peer, conversationId, onC
       setMessages((current) =>
         current.map((m) =>
           m.id === messageId || (idempotencyKey && m.idempotencyKey === idempotencyKey)
-            ? { ...m, id: m.id || messageId, status, error: undefined }
+            ? { ...m, id: m.id || messageId, status: laterStatus(m.status, status), error: undefined }
             : m
         )
       );
     };
 
+    // FR-010: show the peer's typing state for this conversation only.
+    const onTyping = (update) => {
+      if (update.userId !== peer.id || !roomRef.current || update.conversationId !== roomRef.current) return;
+      clearTimeout(peerTypingTimer.current);
+      setPeerTyping(update.typing);
+      if (update.typing) peerTypingTimer.current = setTimeout(() => setPeerTyping(false), TYPING_STALE_MS);
+    };
+
     socket.on('message:new', onNew);
     socket.on('message:status', onStatus);
+    socket.on('typing:update', onTyping);
     return () => {
       socket.off('message:new', onNew);
       socket.off('message:status', onStatus);
+      socket.off('typing:update', onTyping);
     };
   }, [socket, peer.id, adoptRoom]);
+
+  // FR-011: tell the server when the peer's messages have been seen in this open conversation.
+  useEffect(() => {
+    if (!socket) return;
+    for (const m of messages) {
+      if (m.id && m.senderId !== me.id && m.status !== 'read' && !readReported.current.has(m.id)) {
+        readReported.current.add(m.id);
+        socket.emit('message:read', { messageId: m.id });
+      }
+    }
+  }, [messages, socket, me.id]);
+
+  useEffect(() => () => {
+    clearTimeout(typingStopTimer.current);
+    clearTimeout(peerTypingTimer.current);
+  }, []);
+
+  const stopTyping = useCallback(() => {
+    clearTimeout(typingStopTimer.current);
+    if (typingSent.current && socket && roomRef.current) socket.emit('typing:stop', { conversationId: roomRef.current });
+    typingSent.current = false;
+  }, [socket]);
+
+  // Call on every keystroke: one typing:start, then typing:stop after a pause.
+  const notifyTyping = useCallback(() => {
+    if (!socket || !roomRef.current) return;
+    if (!typingSent.current) {
+      socket.emit('typing:start', { conversationId: roomRef.current });
+      typingSent.current = true;
+    }
+    clearTimeout(typingStopTimer.current);
+    typingStopTimer.current = setTimeout(stopTyping, TYPING_IDLE_MS);
+  }, [socket, stopTyping]);
 
   const send = useCallback(
     (content, retryKey) => {
       const text = content.trim();
       if (!text || !socket) return;
+      stopTyping();
       // A retry reuses the original key so the server can't store it twice.
       const idempotencyKey = retryKey || newKey();
       sentKeys.current.add(idempotencyKey);
@@ -131,11 +188,11 @@ export function useDirectMessages({ socket, token, me, peer, conversationId, onC
           setMessages((current) => upsertMessage(current, { idempotencyKey, status: 'failed', error: reason }));
         });
     },
-    [socket, me.id, peer.id, adoptRoom]
+    [socket, me.id, peer.id, adoptRoom, stopTyping]
   );
 
   const retry = useCallback((msg) => send(msg.content, msg.idempotencyKey), [send]);
   const loadOlder = useCallback(() => nextPage && loadPage(nextPage), [nextPage, loadPage]);
 
-  return { messages, nextPage, loading, error, send, retry, loadOlder, roomId };
+  return { messages, nextPage, loading, error, send, retry, loadOlder, roomId, peerTyping, notifyTyping };
 }

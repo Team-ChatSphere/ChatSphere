@@ -9,6 +9,10 @@ export function createFakeSocket() {
     on: vi.fn((event, fn) => {
       (handlers[event] ||= new Set()).add(fn);
     }),
+    once: vi.fn((event, fn) => {
+      const wrapper = (...args) => { handlers[event]?.delete(wrapper); fn(...args); };
+      (handlers[event] ||= new Set()).add(wrapper);
+    }),
     off: vi.fn((event, fn) => handlers[event]?.delete(fn)),
     timeout: vi.fn(() => socket),
     emit: vi.fn((event, payload, ack) => {

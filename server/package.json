@@ -7,7 +7,10 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "lint": "eslint .",
-    "test": "jest"
+    "test": "jest",
+    "loadtest": "node scripts/loadTest.js",
+    "postman": "node scripts/postmanRun.js",
+    "seed:dm": "node scripts/seedDm.js"
   },
   "engines": {
     "node": ">=20"
@@ -19,6 +22,7 @@
     "express": "^4.22.3",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.5",
+    "redis": "^5.12.2",
     "socket.io": "^4.8.4"
   },
   "devDependencies": {
@@ -32,6 +36,16 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testTimeout": 60000
+    "testTimeout": 60000,
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "json-summary",
+      "json",
+      "html"
+    ],
+    "coverageDirectory": "coverage"
   }
 }

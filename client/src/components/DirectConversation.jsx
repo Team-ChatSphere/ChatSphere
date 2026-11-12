@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../state/AuthContext.jsx';
 import { useSocket } from '../state/SocketContext.jsx';
 import { useDirectMessages } from '../hooks/useDirectMessages.js';
+import { decodeEntities } from '../utils/text.js';
 import './DirectConversation.css';
 
 const MAX_LENGTH = 2000;
@@ -21,7 +22,7 @@ function MessageBubble({ message, mine, onRetry }) {
   return (
     <li className={`dm-message ${mine ? 'mine' : 'theirs'}`}>
       {/* Rendered as text, never HTML, so message content can't inject markup. */}
-      <p className="dm-bubble">{message.content}</p>
+      <p className="dm-bubble">{decodeEntities(message.content)}</p>
       <span className="dm-meta">
         {formatTime(message.timestamp)}
         {mine && message.status === 'failed' && (
@@ -43,7 +44,7 @@ function MessageBubble({ message, mine, onRetry }) {
 export default function DirectConversation({ peer, conversationId, onConversationId }) {
   const { token, user } = useAuth();
   const { socket } = useSocket();
-  const { messages, nextPage, loading, error, send, retry, loadOlder } = useDirectMessages({
+  const { messages, nextPage, loading, error, send, retry, loadOlder, peerTyping, notifyTyping } = useDirectMessages({
     socket,
     token,
     me: user,
@@ -102,6 +103,7 @@ export default function DirectConversation({ peer, conversationId, onConversatio
         <div ref={endRef} />
       </div>
 
+      {peerTyping && <p className="dm-typing" aria-live="polite">{peer.username} is typing…</p>}
       <form className="dm-composer" onSubmit={submit}>
         <textarea
           aria-label={`Message ${peer.username}`}
@@ -109,7 +111,10 @@ export default function DirectConversation({ peer, conversationId, onConversatio
           value={draft}
           maxLength={MAX_LENGTH}
           rows={1}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            notifyTyping();
+          }}
           onKeyDown={onKeyDown}
         />
         {draft.length > MAX_LENGTH - 200 && <span className="dm-counter">{MAX_LENGTH - draft.length}</span>}

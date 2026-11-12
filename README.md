@@ -21,6 +21,15 @@ npm install
 npm run dev
 ```
 
+## Run with Docker
+
+```bash
+docker compose up --build     # client http://localhost:8080, server http://localhost:4000
+docker compose down -v         # stop and delete the data volume
+```
+
+Runs the server, the React client (nginx), MongoDB 6 and Redis 7. Set `JWT_SECRET` in your shell or a root `.env` for anything beyond a local demo.
+
 ## Tests
 
 ```bash
@@ -32,7 +41,12 @@ CI runs the same on every PR and push to `develop` / `main`.
 
 ## Docs
 
-- `docs/`: SRS v1.1, SAD v1.0, Test Plan v1.0 (PDF), integration contract (`INTEGRATION.md`), RTM, deviation log, Postman collection
+- [API reference](docs/API.md): REST endpoints, Socket.IO events, payloads and error codes
+- [Postman collection and run results](docs/postman/README.md): collection, reproducible Newman run and recorded results
+- [Test and coverage reports](docs/reports/README.md): generated test report, coverage summaries and Test Plan v1.1 system validation
+- [Demo videos](docs/demo/README.md): Sprint 1 and Sprint 2 demos, with board screenshots for each sprint
+- [Usability walkthrough](docs/usability/README.md): register → first message in 3 screens
+- `docs/`: SRS v1.2, SAD v1.1 and Test Plan v1.1 (PDF, earlier versions kept), integration contract, RTM and deviation log
 - Synopsis and the combined Part-1 PDF are in the repo root
 
 ## Workflow

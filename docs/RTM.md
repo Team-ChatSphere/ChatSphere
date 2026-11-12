@@ -1,39 +1,48 @@
-# Requirement Traceability Matrix (working copy)
+# Requirement Traceability Matrix
 
-Extends SRS Appendix C / Test Plan Appendix B. Updated as code and tests land; "Code" and "Tests" columns point at files in this repo.
+Extends SRS Appendix C and Test Plan v1.1 Appendix B: every requirement → backlog item → Test Plan test case → code → automated tests → result. Paths are relative to the repo root (`server/src`, `server/tests`, `client/src`).
 
-Status: ⬜ not started · 🟨 in progress · ✅ done
+Results come from the Part-3 reports in [`docs/reports/`](reports/): [unit tests](reports/unit-test-report.md) · [code coverage](reports/code-coverage-report.md) · [branch coverage](reports/branch-coverage-report.md) · [system validation](reports/system-validation-report.md) · [load test](reports/load-test.md) · [Postman run](postman/results/README.md).
 
-Last updated: 14 Oct 2026 (after PRs #15–#20, #58, #59, #61–#66; #67 pending review).
+Status: ✅ implemented and verified (all 29 requirements)
 
-| Req ID | Requirement | Backlog | Sprint | Test case(s) | Code | Tests | Status |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| FR-001 | Unique user registration | CS-03 | 1 | TC-01, TC-02 |  | `docs/postman/` (Auth folder) | ⬜ |
-| FR-002 | Passwords hashed with bcrypt | CS-03 | 1 | Code review (SEC-001) | | | ⬜ |
-| FR-003 | Login issues signed JWT | CS-05 | 1 | TC-03 |  | `docs/postman/` (Auth folder) | ⬜ |
-| FR-004 | WebSocket handshake JWT check | CS-07 | 1 | TC-04 | | | ⬜ |
-| FR-005 | Broadcast online presence | CS-22 | 2 | Integration test | | | ⬜ |
-| FR-006 | Broadcast offline presence within 5 s | CS-23 | 2 | Integration test | | | ⬜ |
-| FR-007 | Send direct message | CS-09 | 1 | TC-05 | `server/src/services/messaging/messagingService.js` (sendDirectMessage), `server/src/sockets/messagingHandlers.js`, `client/src/components/DirectConversation.jsx`, `client/src/hooks/useDirectMessages.js` | `server/tests/services/messagingService.test.js`, `server/tests/sockets/messagingHandlers.test.js`, `client/src/components/DirectConversation.test.jsx` | 🟨 code + tests done; live once the gateway (CS-07) is in |
-| FR-008 | Real-time delivery when online | CS-09 | 1 | TC-05 | `server/src/sockets/messagingHandlers.js` (`message:new` to `user:<id>`), `client/src/components/DirectConversation.jsx`, `client/src/hooks/useDirectMessages.js` | `server/tests/sockets/messagingHandlers.test.js`, `client/src/components/DirectConversation.test.jsx` | 🟨 code + tests done; live once the gateway (CS-07) is in |
-| FR-009 | Queue & deliver to offline recipient | CS-29 | 2 | TC-06 | | | ⬜ |
-| FR-010 | Typing indicator | CS-30 | 2 | Functional test | | | ⬜ |
-| FR-011 | Message status sent/delivered/read | CS-31 | 2 | TC-05, TC-06 (status observed) | | | ⬜ |
-| FR-012 | Create room, creator is first admin | CS-18 | 1 | TC-07 | `server/src/services/rooms/roomService.js` (createRoom), `server/src/sockets/roomHandlers.js` (`room:create`), `server/src/models/Room.js`, `server/src/models/RoomMembership.js` | `server/tests/services/roomService.test.js`, `server/tests/sockets/roomHandlers.test.js`, `server/tests/models/Room.test.js` | 🟨 code + tests done; live once the gateway (CS-07) is in |
-| FR-013 | Join / leave room | CS-19 | 1 | Functional test | `server/src/services/rooms/roomService.js` (joinRoom, leaveRoom), `server/src/sockets/roomHandlers.js` (`room:join`, `room:leave`) | `server/tests/services/roomService.test.js`, `server/tests/sockets/roomHandlers.test.js` | 🟨 code + tests done; live once the gateway (CS-07) is in |
-| FR-014 | Broadcast group message | CS-20 | 1 | TC-07 | `server/src/services/rooms/roomService.js` (sendRoomMessage), `server/src/sockets/roomHandlers.js` (createRoomMessageHandler → `message:new` to `room:<id>`) | `server/tests/sockets/roomHandlers.test.js`, `server/tests/services/roomService.test.js` | 🟨 code + tests done; live once the gateway (CS-07) is in |
-| FR-015 | Only members can view/send in room | CS-21, CS-40 | 1, 2 | Negative/security test | `server/src/services/rooms/roomService.js` (membership check before save), `server/src/services/messaging/messagingService.js` (getHistory isMember) | `server/tests/services/roomService.test.js` (non-member rejected), `server/tests/services/messageHistory.test.js` (AUTH_FORBIDDEN) | 🟨 send + history checks done; `GET /api/rooms/:roomId/messages` with CS-40 |
-| FR-016 | Room always retains ≥ 1 admin | CS-39 | 2 | Negative test | | | ⬜ |
-| FR-017 | Persist every message | CS-10, CS-11 | 1 | TC-05, TC-06 (persistence implied) | `server/src/models/Message.js`, `server/src/services/messaging/messagingService.js` (persist before ack, idempotency), `server/src/services/messaging/directRoom.js` (#67), `server/src/services/rooms/roomService.js` (sendRoomMessage) | `server/tests/models/Message.test.js`, `server/tests/services/messagingService.test.js`, `server/tests/services/directRoom.test.js` (#67), `server/tests/services/directMessagingIntegration.test.js` (#67), `server/tests/services/roomService.test.js` | 🟨 DM + room messages persisted; live once the gateway (CS-07) is in |
-| FR-018 | Paginated history retrieval | CS-12, CS-40 | 1, 2 | TC-10 | `server/src/services/messaging/messagingService.js` (getHistory), `server/src/routes/messages.js`, `client/src/components/DirectConversation.jsx`, `client/src/hooks/useDirectMessages.js` | `server/tests/services/messageHistory.test.js`, `server/tests/routes/messages.test.js`, `docs/postman/` (DM history folder) | 🟨 DM history done; room history with CS-40 |
-| FR-019 | Admin promotes a member | CS-36 | 2 | Functional test | | | ⬜ |
-| FR-020 | Admin removes a member | CS-37 | 2 | TC-08 (authorized path) | | | ⬜ |
-| FR-021 | Reject non-admin admin actions | CS-38 | 2 | TC-08 | | | ⬜ |
-| NFR-001 | 95% message delivery ≤ 300 ms | CS-34 | 2 | TC-05, load test | | | ⬜ |
-| NFR-002 | 95% REST response ≤ 1 s | CS-34 | 2 | Load test | | | ⬜ |
-| SEC-001 | No plaintext passwords | CS-03 | 1 | Code review |  |  | ⬜ needs a backend test that the stored password is a bcrypt hash (CS-03) |
-| SEC-002 | RBAC on room-admin actions | CS-38, CS-27 | 2 | TC-08 | | | ⬜ |
-| SEC-003 | Sanitize message content (XSS) | CS-32 | 2 | TC-09 | | | ⬜ |
-| SEC-004 | Reject expired/invalid JWTs | CS-07, CS-27 | 1, 2 | TC-04 | | | ⬜ |
-| SEC-005 | Rate-limit message-send events | CS-25, CS-27 | 2 | Load/security test | | | ⬜ |
-| SEC-006 | Log security-relevant events | CS-26 | 2 | System test / code review | | | ⬜ |
+Last updated: 12 Nov 2026, after the final merges (#86–#88). Reports: 244/244 tests passed, 23/23 Test Plan cases passed.
+
+## Functional requirements
+
+| Req | Requirement | Backlog | Test case(s) | Code | Automated tests | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| FR-001 | Unique user registration | CS-03, CS-04 | TC-01, TC-02, TC-16 | `services/auth/authService.js` (register), `models/User.js` (case-insensitive unique index), `routes/auth.js` | `services/authService.test.js`, `models/User.test.js`, `routes/auth.test.js`, Postman Auth | ✅ |
+| FR-002 | Passwords hashed with bcrypt | CS-03 | TC-01 | `services/auth/authService.js` (bcrypt) | `services/authService.test.js` (stored value is a bcrypt hash, plaintext absent) | ✅ |
+| FR-003 | Login issues signed JWT | CS-05 | TC-03, TC-11 | `services/auth/authService.js` (login, signToken), `routes/auth.js` | `services/authService.test.js`, `routes/auth.test.js`, Postman Auth | ✅ |
+| FR-004 | WebSocket handshake JWT check | CS-07 | TC-04, TC-23 | `middleware/jwtAuth.js`, `services/auth/authService.js` (authenticate), `gateway.js` | `middleware/jwtAuth.test.js`, `e2e/chatFlow.test.js` | ✅ |
+| FR-005 | Broadcast online presence | CS-22 | TC-19 | `services/presence/presenceService.js` (Redis socket set per user; online on first socket), `gateway.js` | `e2e/presence.test.js`, `client/.../RoomsPanel.test.jsx` (presence dots) | ✅ |
+| FR-006 | Offline presence within 5 s | CS-23 | TC-19 | `presenceService.js` (offline on last socket), heartbeat in `server.js` | `e2e/presence.test.js`, `server.test.js` (lost socket detected within 5 s) | ✅ |
+| FR-007 | Send direct message | CS-09 | TC-05 | `services/messaging/messagingService.js` (sendDirectMessage), `sockets/messagingHandlers.js`, `client/src/hooks/useDirectMessages.js` | `services/messagingService.test.js`, `sockets/messagingHandlers.test.js`, `e2e/chatFlow.test.js`, `client/.../DirectConversation.test.jsx` | ✅ |
+| FR-008 | Real-time delivery when online | CS-09 | TC-05 | `sockets/messagingHandlers.js` (`message:new` to `user:<id>`), `gateway.js` | `e2e/chatFlow.test.js` (live DM between two clients, < 300 ms) | ✅ |
+| FR-009 | Deliver to offline recipient | CS-29 | TC-06 | `sockets/messagingHandlers.js` (deliverPending), `messagingService.js` (pendingFor, markDelivered) | `e2e/messageLifecycle.test.js`, `services/messageLifecycle.test.js` | ✅ |
+| FR-010 | Typing indicator | CS-30 | TC-13 | `sockets/messagingHandlers.js` (typing), `messagingService.js` (typingTargets), `client/src/hooks/useDirectMessages.js` | `e2e/messageLifecycle.test.js`, `client/.../DirectConversation.test.jsx` | ✅ |
+| FR-011 | Message status sent/delivered/read | CS-31 | TC-12 | `messagingService.js` (markDelivered, markRead), `sockets/messagingHandlers.js`, client ticks | `e2e/messageLifecycle.test.js`, `services/messageLifecycle.test.js`, `client/.../DirectConversation.test.jsx` | ✅ |
+| FR-012 | Create room, creator is first admin | CS-18 | TC-07 | `services/rooms/roomService.js` (createRoom), `sockets/roomHandlers.js` | `services/roomService.test.js`, `sockets/roomHandlers.test.js`, `e2e/chatFlow.test.js` | ✅ |
+| FR-013 | Join / leave room | CS-19 | TC-17 | `roomService.js` (joinRoom, leaveRoom, restoreRoom), `sockets/roomHandlers.js`, `gateway.js` (rejoin on connect) | `services/roomService.test.js`, `services/restoreRoom.test.js`, `e2e/chatFlow.test.js` | ✅ |
+| FR-014 | Broadcast group message | CS-20 | TC-07 | `roomService.js` (sendRoomMessage), `sockets/roomHandlers.js` (createRoomMessageHandler) | `sockets/roomHandlers.test.js`, `e2e/chatFlow.test.js` | ✅ |
+| FR-015 | Only members view/send in room | CS-21, CS-40 | TC-18, TC-10 | `roomService.js` (membership check), `messagingService.js` (getHistory), `routes/rooms.js` (room history, members) | `services/roomService.test.js`, `routes/rooms.test.js`, `e2e/chatFlow.test.js`, `services/messageHistory.test.js` | ✅ |
+| FR-016 | Room keeps ≥ 1 admin | CS-39 | TC-21 | `roomService.js` (leaveRoom / removeMember last-admin guard, per-room lock) | `services/roomService.test.js` (last admin cannot leave or be removed) | ✅ |
+| FR-017 | Persist every message | CS-10, CS-11 | TC-05, TC-06, TC-14 | `models/Message.js`, `messagingService.js` (persist before ack, idempotency), `services/messaging/directRoom.js`, `roomService.js` | `models/Message.test.js`, `services/messagingService.test.js`, `services/directRoom.test.js`, `services/directMessagingIntegration.test.js` | ✅ |
+| FR-018 | Paginated history | CS-12, CS-40 | TC-10 | `messagingService.js` (getHistory), `routes/messages.js`, `client/src/hooks/useDirectMessages.js` | `services/messageHistory.test.js`, `routes/messages.test.js`, `e2e/chatFlow.test.js`, Postman DM history | ✅ |
+| FR-019 | Admin promotes a member | CS-36 | TC-20 | `roomService.js` (promoteMember), `sockets/roomHandlers.js` (`room:promote`), `client/.../RoomsPanel.jsx` | `services/roomService.test.js`, `sockets/roomHandlers.test.js`, `client/.../RoomsPanel.test.jsx` | ✅ |
+| FR-020 | Admin removes a member | CS-37 | TC-20 | `roomService.js` (removeMember), `roomHandlers.js` (`room:removeMember`, evicts the member's sockets) | as FR-019 | ✅ |
+| FR-021 | Reject non-admin admin actions | CS-38 | TC-08 | `roomService.js` (requireAdmin before any room lookup: no existence leak, SAD 3.3) | `services/roomService.test.js` (non-admins cannot promote or remove) | ✅ |
+
+## Non-functional and security requirements
+
+| Req | Requirement | Backlog | Test case(s) | Code / evidence | Automated tests | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| NFR-001 | 95% delivery ≤ 300 ms | CS-34 | TC-05 | Load test: **p95 16.2 ms**, 1000 DMs, 0 lost ([report](reports/load-test.md)) | `server/scripts/loadTest.js`, `e2e/chatFlow.test.js` latency check | ✅ |
+| NFR-002 | 95% REST ≤ 1 s | CS-34 | TC-22 | Load test: **p95 66.1 ms**, 500 requests, 0 errors; Postman timing assertions | `server/scripts/loadTest.js`, Postman | ✅ |
+| SEC-001 | No plaintext passwords | CS-03 | TC-01 | bcrypt only; hash stripped from JSON (`models/User.js`) | `services/authService.test.js`, `models/User.test.js` | ✅ |
+| SEC-002 | RBAC on room-admin actions | CS-38, CS-27 | TC-08 | `roomService.js` (requireAdmin, RoomMembership.role) | `services/roomService.test.js`, `sockets/roomHandlers.test.js` | ✅ |
+| SEC-003 | Sanitise content (stored XSS) | CS-32 | TC-09 | `utils/sanitize.js` (server, DMs + rooms), `client/src/utils/text.js` + React text rendering | `utils/sanitize.test.js`, `e2e/messageLifecycle.test.js`, `client/.../DirectConversation.test.jsx` | ✅ |
+| SEC-004 | Reject expired/invalid JWTs | CS-07, CS-27 | TC-04, TC-23 | `middleware/jwtAuth.js`, `authService.js` (verifyToken, authenticate) | `services/authService.test.js` (expired, tampered, wrong key, `alg:none`, deleted user), `middleware/jwtAuth.test.js`, `e2e/chatFlow.test.js`, Postman | ✅ |
+| SEC-005 | Rate-limit message sending | CS-25, CS-27 | TC-15 | `sockets/rateLimit.js` | `sockets/rateLimit.test.js`, `e2e/rateLimit.test.js` | ✅ |
+| SEC-006 | Log security events | CS-26 | TC-11, TC-15, TC-08 | `utils/securityLog.js`: failed logins, rate limiting, room-admin denials (`room_admin_forbidden`) | `services/authService.test.js`, `sockets/rateLimit.test.js`, `services/roomService.test.js` | ✅ |

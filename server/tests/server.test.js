@@ -15,6 +15,13 @@ async function stop({ io, httpServer }) {
 }
 
 describe('HTTP + Socket.IO server (CS-01)', () => {
+  test('detects lost sockets within the five-second presence window', async () => {
+    const server = await start();
+
+    expect(server.io.engine.opts.pingInterval + server.io.engine.opts.pingTimeout).toBeLessThanOrEqual(5000);
+    await stop(server);
+  });
+
   test('a client connects over WebSocket and reaches the registered socket handlers', async () => {
     const server = await start({
       registerSockets(io) {

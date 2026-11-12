@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="ChatSphere API (final)" tests="15" time="0.080">
+  <testsuite name="Health / Health check" id="5348157b-2f44-477b-9c7b-8ec1cdd01296" timestamp="2026-11-11T19:13:01.485Z" tests="3" failures="0" errors="0" time="0.025">
+    <testcase name="status is 200" time="0.025" classname="HealthHealthCheck"/>
+    <testcase name="status ok" time="0.025" classname="HealthHealthCheck"/>
+    <testcase name="responds within 1 s (NFR-002)" time="0.025" classname="HealthHealthCheck"/>
+  </testsuite>
+  <testsuite name="Auth / Register (FR-001, FR-002, TC-01)" id="14aa159f-af95-4d32-a99d-81343bb91ecf" timestamp="2026-11-11T19:13:01.485Z" tests="3" failures="0" errors="0" time="0.008">
+    <testcase name="status is 201" time="0.008" classname="AuthRegisterFr001Fr002Tc01"/>
+    <testcase name="returns userId" time="0.008" classname="AuthRegisterFr001Fr002Tc01"/>
+    <testcase name="responds within 1 s (NFR-002)" time="0.008" classname="AuthRegisterFr001Fr002Tc01"/>
+  </testsuite>
+  <testsuite name="Auth / Register duplicate email is rejected (TC-02)" id="5cfdbef5-03ec-4438-9fe2-6c217ac7c9a2" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.004">
+    <testcase name="status is 400" time="0.004" classname="AuthRegisterDuplicateEmailIsRejectedTc02"/>
+    <testcase name="error code is VALIDATION_FAILED" time="0.004" classname="AuthRegisterDuplicateEmailIsRejectedTc02"/>
+  </testsuite>
+  <testsuite name="Auth / Register short password is rejected (SEC-001)" id="244d967b-acb1-4bd0-ad69-0ec453298bee" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.003">
+    <testcase name="status is 400" time="0.003" classname="AuthRegisterShortPasswordIsRejectedSec001"/>
+    <testcase name="error code is VALIDATION_FAILED" time="0.003" classname="AuthRegisterShortPasswordIsRejectedSec001"/>
+  </testsuite>
+  <testsuite name="Auth / Login (FR-003, TC-03)" id="41d958c4-12f7-4650-95df-43ba3900414a" timestamp="2026-11-11T19:13:01.485Z" tests="3" failures="0" errors="0" time="0.005">
+    <testcase name="status is 200" time="0.005" classname="AuthLoginFr003Tc03"/>
+    <testcase name="returns a JWT" time="0.005" classname="AuthLoginFr003Tc03"/>
+    <testcase name="responds within 1 s (NFR-002)" time="0.005" classname="AuthLoginFr003Tc03"/>
+  </testsuite>
+  <testsuite name="Auth / Login with wrong password (401)" id="09c82127-bd18-4d56-8b86-1ee61cb468c0" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.005">
+    <testcase name="status is 401" time="0.005" classname="AuthLoginWithWrongPassword401"/>
+    <testcase name="error code is AUTH_INVALID_TOKEN" time="0.005" classname="AuthLoginWithWrongPassword401"/>
+  </testsuite>
+  <testsuite name="Auth / Login with unknown user gives the same 401" id="6d6f214c-da86-475e-bd8c-797ea1776e89" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.005">
+    <testcase name="status is 401" time="0.005" classname="AuthLoginWithUnknownUserGivesTheSame401"/>
+    <testcase name="same message as a wrong password (no account enumeration)" time="0.005" classname="AuthLoginWithUnknownUserGivesTheSame401"/>
+  </testsuite>
+  <testsuite name="DM history / Login as the DM participant" id="6c0a251e-ee07-4dd8-ac93-e76582e2b268" timestamp="2026-11-11T19:13:01.485Z" tests="1" failures="0" errors="0" time="0.005">
+    <testcase name="status is 200" time="0.005" classname="DmHistoryLoginAsTheDmParticipant"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history (FR-018, TC-10)" id="3cb4ff99-9a07-407b-a599-c74565a6306f" timestamp="2026-11-11T19:13:01.485Z" tests="4" failures="0" errors="0" time="0.006">
+    <testcase name="status is 200" time="0.006" classname="DmHistoryGetDmHistoryFr018Tc10"/>
+    <testcase name="has messages[] and nextPage" time="0.006" classname="DmHistoryGetDmHistoryFr018Tc10"/>
+    <testcase name="newest first" time="0.006" classname="DmHistoryGetDmHistoryFr018Tc10"/>
+    <testcase name="responds within 1 s (NFR-002)" time="0.006" classname="DmHistoryGetDmHistoryFr018Tc10"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history, page size 1 has a next page" id="34c16056-a67e-40dc-b070-8ff320baff1e" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.004">
+    <testcase name="status is 200" time="0.004" classname="DmHistoryGetDmHistoryPageSize1HasANextPage"/>
+    <testcase name="one message and nextPage 2" time="0.004" classname="DmHistoryGetDmHistoryPageSize1HasANextPage"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history without token (SEC-004, TC-04)" id="e1eeadb4-a59a-4beb-8ae5-192cced00b65" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.002">
+    <testcase name="status is 401" time="0.002" classname="DmHistoryGetDmHistoryWithoutTokenSec004Tc04"/>
+    <testcase name="error code is AUTH_INVALID_TOKEN" time="0.002" classname="DmHistoryGetDmHistoryWithoutTokenSec004Tc04"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history with a tampered token (SEC-004)" id="25d37266-5112-4854-8d7c-f1a027320ade" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.001">
+    <testcase name="status is 401" time="0.001" classname="DmHistoryGetDmHistoryWithATamperedTokenSec004"/>
+    <testcase name="error code is AUTH_INVALID_TOKEN" time="0.001" classname="DmHistoryGetDmHistoryWithATamperedTokenSec004"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history of a conversation I am not in (FR-015)" id="eb143eef-d324-4f17-aacc-c5befa5564a0" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.003">
+    <testcase name="status is 403" time="0.003" classname="DmHistoryGetDmHistoryOfAConversationIAmNotInFr015"/>
+    <testcase name="error code is AUTH_FORBIDDEN" time="0.003" classname="DmHistoryGetDmHistoryOfAConversationIAmNotInFr015"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history with bad pageSize" id="f1a39425-3399-4a97-a984-83b4917babf8" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.002">
+    <testcase name="status is 400" time="0.002" classname="DmHistoryGetDmHistoryWithBadPageSize"/>
+    <testcase name="error code is VALIDATION_FAILED" time="0.002" classname="DmHistoryGetDmHistoryWithBadPageSize"/>
+  </testsuite>
+  <testsuite name="DM history / Get DM history with a malformed id" id="e74560f1-012c-46b6-b156-e38d1b961e23" timestamp="2026-11-11T19:13:01.485Z" tests="2" failures="0" errors="0" time="0.002">
+    <testcase name="status is 400" time="0.002" classname="DmHistoryGetDmHistoryWithAMalformedId"/>
+    <testcase name="error code is VALIDATION_FAILED" time="0.002" classname="DmHistoryGetDmHistoryWithAMalformedId"/>
+  </testsuite>
+</testsuites>
