@@ -30,6 +30,15 @@ docker compose down -v         # stop and delete the data volume
 
 Runs the server, the React client (nginx), MongoDB 6 and Redis 7. Set `JWT_SECRET` in your shell or a root `.env` for anything beyond a local demo.
 
+**Chatting across laptops (same network):** one laptop runs the stack and the others use it.
+
+1. On the host laptop, find its IP (`ipconfig`, the Wi-Fi IPv4 address) and put it in a root `.env` file: `PUBLIC_HOST=192.168.1.20`
+2. `docker compose up --build` (rebuild whenever `PUBLIC_HOST` changes; the client has the server address built in)
+3. Allow inbound TCP 8080 and 4000 in the host's firewall
+4. Everyone, including the host, opens `http://<that IP>:8080` and registers there
+
+Some campus networks block traffic between devices; a phone hotspot works instead.
+
 ## Tests
 
 ```bash

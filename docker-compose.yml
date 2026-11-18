@@ -2,6 +2,8 @@
 #   client  http://localhost:8080
 #   server  http://localhost:4000
 # Set JWT_SECRET in your shell or a root .env file for anything beyond a local demo.
+# To let other laptops on the same network use this machine, set PUBLIC_HOST to this machine's IP
+# (e.g. PUBLIC_HOST=192.168.1.20 in .env), rebuild, and open http://<that IP>:8080 on the other laptops.
 services:
   mongo:
     image: mongo:6
@@ -29,7 +31,7 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-local-demo-secret-change-me}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
-      CLIENT_ORIGIN: http://localhost:8080,http://localhost:5173
+      CLIENT_ORIGIN: http://localhost:8080,http://localhost:5173,http://${PUBLIC_HOST:-localhost}:8080
     ports:
       - "4000:4000"
     depends_on:
@@ -42,7 +44,7 @@ services:
     build:
       context: ./client
       args:
-        VITE_API_URL: http://localhost:4000
+        VITE_API_URL: http://${PUBLIC_HOST:-localhost}:4000
     ports:
       - "8080:80"
     depends_on:
